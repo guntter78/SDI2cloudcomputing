@@ -42,6 +42,7 @@ sleep $start_wait_time
 
 # Zorg ervoor dat de eth0-interface actief is
 pct exec $id -- ip link set eth0 up
+pct exec $id -- ip addr add $ip dev eth0
 
 # Standaard netwerkconfiguratie instellen binnen de container
 pct exec $id -- bash -c "echo 'nameserver $dns' > /etc/resolv.conf"
