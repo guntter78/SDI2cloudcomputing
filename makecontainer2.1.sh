@@ -1,19 +1,19 @@
 #!/bin/bash
 
 # Basisinstellingen
-id=1002
+id=1004
 arch_type=amd64
 os_type=ubuntu
-hostname=testmachine2
+hostname=testmachine4
 cores=1
 memory=1024
 swap=512
 storage="DrivePool"
 password="hiereengoedwachtwoord;)"
-net0_name="eth0"
+net0_name="eth4"
 bridge="vmbr0"
 gw="10.24.36.1"
-ip="10.24.36.102/24"
+ip="10.24.36.104/24"
 dns="8.8.8.8"
 type="veth"
 start_wait_time=10
