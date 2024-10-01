@@ -3,6 +3,7 @@
   become: yes
   connection: local
   tasks:
+
     - name: Update apt package index
       apt:
         update_cache: yes
@@ -17,6 +18,17 @@
           - libapache2-mod-php
           - wget
         state: present
+
+    - name: Disable PrivateTmp, ProtectSystem, and ProtectHome in Apache service
+      blockinfile:
+        path: /lib/systemd/system/apache2.service
+        block: |
+          PrivateTmp=false
+          ProtectSystem=off
+          ProtectHome=off
+
+    - name: Reload systemd and restart Apache
+      command: systemctl daemon-reload && systemctl restart apache2
 
     - name: Enable Apache rewrite module
       command: a2enmod rewrite
