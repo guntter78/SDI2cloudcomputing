@@ -27,8 +27,13 @@
           ProtectSystem=off
           ProtectHome=off
 
-    - name: Reload systemd and restart Apache
-      command: systemctl daemon-reload && systemctl restart apache2
+    - name: Reload systemd
+      command: systemctl daemon-reload
+
+    - name: Restart Apache service
+      service:
+        name: apache2
+        state: restarted
 
     - name: Enable Apache rewrite module
       command: a2enmod rewrite
