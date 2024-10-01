@@ -1,0 +1,31 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+    - name: Update and upgrade apt packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+
+    - name: Install required packages for WordPress
+      apt:
+        name:
+          - apache2
+          - mysql-server
+          - php
+          - php-mysql
+          - libapache2-mod-php
+        state: present
+
+    - name: Download and install WordPress
+      shell: |
+        wget https://wordpress.org/latest.tar.gz
+        tar -xvzf latest.tar.gz
+        rsync -av wordpress/* /var/www/html/
+        chown -R www-data:www-data /var/www/html/
+        chmod -R 755 /var/www/html/
+
+    - name: Restart apache2
+      service:
+        name: apache2
+        state: restarted

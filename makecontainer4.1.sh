@@ -1,12 +1,12 @@
 #!/bin/bash
 
-echo "Enter de aantal containers:"
+echo "Voer het aantal containers in:"
 read num_containers
-echo "Enter de beginnende server ID:"
+echo "Voer de beginnende server ID in:"
 read serverid
-echo "Enter server name prefix:"
+echo "Voer de server naam prefix in:"
 read servername
-echo "Enter laatste octet van het server IP (start octet):"
+echo "Voer het laatste octet van het server IP in (start octet):"
 read last_octet
 
 # Basisinstellingen
