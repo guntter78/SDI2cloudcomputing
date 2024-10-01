@@ -1,11 +1,11 @@
 ---
-- hosts: all
+- hosts: localhost
   become: yes
   tasks:
-    - name: Update and upgrade apt packages
+
+    - name: Update apt package index
       apt:
         update_cache: yes
-        upgrade: dist
 
     - name: Install required packages for WordPress
       apt:
@@ -15,17 +15,61 @@
           - php
           - php-mysql
           - libapache2-mod-php
+          - curl
+          - wget
         state: present
 
-    - name: Download and install WordPress
-      shell: |
-        wget https://wordpress.org/latest.tar.gz
-        tar -xvzf latest.tar.gz
-        rsync -av wordpress/* /var/www/html/
-        chown -R www-data:www-data /var/www/html/
-        chmod -R 755 /var/www/html/
+    - name: Enable Apache rewrite module
+      command: a2enmod rewrite
 
-    - name: Restart apache2
+    - name: Restart Apache service to apply changes
+      service:
+        name: apache2
+        state: restarted
+
+    - name: Download latest WordPress
+      shell: |
+        wget https://wordpress.org/latest.tar.gz -O /tmp/latest.tar.gz
+        tar -xvzf /tmp/latest.tar.gz -C /var/www/html --strip-components=1
+      args:
+        creates: /var/www/html/wp-config-sample.php
+
+    - name: Set permissions on WordPress files
+      file:
+        path: /var/www/html
+        owner: www-data
+        group: www-data
+        recurse: yes
+
+    - name: Create MySQL database for WordPress
+      mysql_db:
+        name: wordpress
+        state: present
+
+    - name: Create MySQL user for WordPress
+      mysql_user:
+        name: wordpress_user
+        password: wordpress_password
+        priv: 'wordpress.*:ALL'
+        state: present
+
+    - name: Copy wp-config.php
+      copy:
+        src: /var/www/html/wp-config-sample.php
+        dest: /var/www/html/wp-config.php
+        remote_src: yes
+
+    - name: Set MySQL database and user configuration in wp-config.php
+      lineinfile:
+        path: /var/www/html/wp-config.php
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      with_items:
+        - { regexp: 'database_name_here', line: "define( 'DB_NAME', 'wordpress' );" }
+        - { regexp: 'username_here', line: "define( 'DB_USER', 'wordpress_user' );" }
+        - { regexp: 'password_here', line: "define( 'DB_PASSWORD', 'wordpress_password' );" }
+
+    - name: Restart Apache to apply all changes
       service:
         name: apache2
         state: restarted
