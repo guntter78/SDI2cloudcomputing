@@ -1,13 +1,14 @@
 ---
 - name: Install WordPress on containers
-  hosts: all
+  hosts: localhost
   become: yes
+  connection: local
   vars:
     wordpress_db_name: wordpress
     wordpress_db_user: wp_user
     wordpress_db_password: strongpassword
     wordpress_db_host: localhost
-    wordpress_site_url: "http://{{ inventory_hostname }}"
+    wordpress_site_url: "http://{{ ansible_hostname }}"
     wordpress_site_title: "My WordPress Site"
     wordpress_admin_user: admin
     wordpress_admin_password: adminpassword
@@ -67,16 +68,14 @@
         url: https://wordpress.org/latest.tar.gz
         dest: /tmp/latest.tar.gz
 
-    - name: Extract WordPress
+    - name: Extract WordPress locally in container
       unarchive:
         src: /tmp/latest.tar.gz
         dest: /var/www/html/
-        remote_src: yes
+        creates: /var/www/html/wp-config-sample.php
 
-    - name: Rename extracted WordPress folder if necessary
-      command: mv /var/www/html/wordpress/* /var/www/html/
-      args:
-        removes: /var/www/html/wp-config-sample.php
+    - name: Verify WordPress files are in the right place
+      command: ls -l /var/www/html
 
     - name: Set proper permissions for WordPress
       file:
@@ -105,6 +104,43 @@
 
     - name: Enable Apache rewrite module
       command: a2enmod rewrite
+
+    - name: Disable PrivateTmp in Apache service
+      replace:
+        path: /lib/systemd/system/apache2.service
+        regexp: 'PrivateTmp=true'
+        replace: 'PrivateTmp=false'
+
+    - name: Disable ProtectSystem in Apache service
+      replace:
+        path: /lib/systemd/system/apache2.service
+        regexp: 'ProtectSystem=full'
+        replace: '#ProtectSystem=full'
+
+    - name: Disable ProtectHome in Apache service
+      replace:
+        path: /lib/systemd/system/apache2.service
+        regexp: 'ProtectHome=true'
+        replace: '#ProtectHome=true'
+
+    - name: Remove [Install] section from Apache service
+      lineinfile:
+        path: /lib/systemd/system/apache2.service
+        regexp: '\[Install\]'
+        state: absent
+
+    - name: Add custom settings to [Service] section in Apache service
+      blockinfile:
+        path: /lib/systemd/system/apache2.service
+        marker: "# {mark} ANSIBLE MANAGED BLOCK"
+        block: |
+          PrivateTmp=false
+          ProtectSystem=false
+          ProtectHome=false
+        insertafter: '\[Service\]'
+
+    - name: Reload systemd
+      command: systemctl daemon-reload
 
     - name: Restart Apache
       service:
