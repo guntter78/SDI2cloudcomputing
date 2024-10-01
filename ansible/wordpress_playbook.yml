@@ -1,8 +1,8 @@
 ---
 - hosts: localhost
   become: yes
+  connection: local
   tasks:
-
     - name: Update apt package index
       apt:
         update_cache: yes
@@ -15,19 +15,18 @@
           - php
           - php-mysql
           - libapache2-mod-php
-          - curl
           - wget
         state: present
 
     - name: Enable Apache rewrite module
       command: a2enmod rewrite
 
-    - name: Restart Apache service to apply changes
+    - name: Restart Apache service
       service:
         name: apache2
         state: restarted
 
-    - name: Download latest WordPress
+    - name: Download WordPress
       shell: |
         wget https://wordpress.org/latest.tar.gz -O /tmp/latest.tar.gz
         tar -xvzf /tmp/latest.tar.gz -C /var/www/html --strip-components=1
@@ -53,13 +52,13 @@
         priv: 'wordpress.*:ALL'
         state: present
 
-    - name: Copy wp-config.php
+    - name: Configure wp-config.php
       copy:
         src: /var/www/html/wp-config-sample.php
         dest: /var/www/html/wp-config.php
         remote_src: yes
 
-    - name: Set MySQL database and user configuration in wp-config.php
+    - name: Update wp-config.php with database information
       lineinfile:
         path: /var/www/html/wp-config.php
         regexp: "{{ item.regexp }}"
@@ -69,7 +68,7 @@
         - { regexp: 'username_here', line: "define( 'DB_USER', 'wordpress_user' );" }
         - { regexp: 'password_here', line: "define( 'DB_PASSWORD', 'wordpress_password' );" }
 
-    - name: Restart Apache to apply all changes
+    - name: Restart Apache service to apply changes
       service:
         name: apache2
         state: restarted
