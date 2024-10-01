@@ -1,14 +1,25 @@
 ---
-- hosts: localhost
+- name: Install WordPress on containers
+  hosts: all
   become: yes
-  connection: local
-  tasks:
+  vars:
+    wordpress_db_name: wordpress
+    wordpress_db_user: wp_user
+    wordpress_db_password: strongpassword
+    wordpress_db_host: localhost
+    wordpress_site_url: "http://{{ inventory_hostname }}"
+    wordpress_site_title: "My WordPress Site"
+    wordpress_admin_user: admin
+    wordpress_admin_password: adminpassword
+    wordpress_admin_email: admin@example.com
 
-    - name: Update apt package index
+  tasks:
+    - name: Update apt cache
       apt:
         update_cache: yes
+        cache_valid_time: 3600
 
-    - name: Install required packages for WordPress
+    - name: Install required packages (Apache, MySQL, PHP, and Curl)
       apt:
         name:
           - apache2
@@ -16,76 +27,91 @@
           - php
           - php-mysql
           - libapache2-mod-php
+          - php-cli
+          - php-curl
+          - php-gd
+          - php-mbstring
+          - php-xml
+          - php-xmlrpc
+          - curl
           - wget
         state: present
 
-    - name: Disable PrivateTmp, ProtectSystem, and ProtectHome in Apache service
-      blockinfile:
-        path: /lib/systemd/system/apache2.service
-        block: |
-          PrivateTmp=false
-          ProtectSystem=off
-          ProtectHome=off
-
-    - name: Reload systemd
-      command: systemctl daemon-reload
-
-    - name: Restart Apache service
+    - name: Start and enable Apache
       service:
         name: apache2
-        state: restarted
+        state: started
+        enabled: true
 
-    - name: Enable Apache rewrite module
-      command: a2enmod rewrite
-
-    - name: Restart Apache service
+    - name: Start and enable MySQL
       service:
-        name: apache2
-        state: restarted
+        name: mysql
+        state: started
+        enabled: true
+
+    - name: Create WordPress MySQL database
+      mysql_db:
+        name: "{{ wordpress_db_name }}"
+        state: present
+
+    - name: Create WordPress MySQL user
+      mysql_user:
+        name: "{{ wordpress_db_user }}"
+        password: "{{ wordpress_db_password }}"
+        priv: "{{ wordpress_db_name }}.*:ALL"
+        host: "{{ wordpress_db_host }}"
+        state: present
 
     - name: Download WordPress
-      shell: |
-        wget https://wordpress.org/latest.tar.gz -O /tmp/latest.tar.gz
-        tar -xvzf /tmp/latest.tar.gz -C /var/www/html --strip-components=1
-      args:
-        creates: /var/www/html/wp-config-sample.php
+      get_url:
+        url: https://wordpress.org/latest.tar.gz
+        dest: /tmp/latest.tar.gz
 
-    - name: Set permissions on WordPress files
+    - name: Extract WordPress
+      unarchive:
+        src: /tmp/latest.tar.gz
+        dest: /var/www/html/
+        remote_src: yes
+
+    - name: Rename extracted WordPress folder if necessary
+      command: mv /var/www/html/wordpress/* /var/www/html/
+      args:
+        removes: /var/www/html/wp-config-sample.php
+
+    - name: Set proper permissions for WordPress
       file:
         path: /var/www/html
         owner: www-data
         group: www-data
+        mode: '0755'
         recurse: yes
 
-    - name: Create MySQL database for WordPress
-      mysql_db:
-        name: wordpress
-        state: present
-
-    - name: Create MySQL user for WordPress
-      mysql_user:
-        name: wordpress_user
-        password: wordpress_password
-        priv: 'wordpress.*:ALL'
-        state: present
-
-    - name: Configure wp-config.php
+    - name: Create wp-config.php
       copy:
-        src: /var/www/html/wp-config-sample.php
         dest: /var/www/html/wp-config.php
-        remote_src: yes
+        content: |
+          <?php
+          define('DB_NAME', '{{ wordpress_db_name }}');
+          define('DB_USER', '{{ wordpress_db_user }}');
+          define('DB_PASSWORD', '{{ wordpress_db_password }}');
+          define('DB_HOST', '{{ wordpress_db_host }}');
+          define('WP_SITEURL', '{{ wordpress_site_url }}');
+          define('WP_HOME', '{{ wordpress_site_url }}');
+          define('FS_METHOD', 'direct');
+          ?>
+        owner: www-data
+        group: www-data
+        mode: '0644'
 
-    - name: Update wp-config.php with database information
-      lineinfile:
-        path: /var/www/html/wp-config.php
-        regexp: "{{ item.regexp }}"
-        line: "{{ item.line }}"
-      with_items:
-        - { regexp: 'database_name_here', line: "define( 'DB_NAME', 'wordpress' );" }
-        - { regexp: 'username_here', line: "define( 'DB_USER', 'wordpress_user' );" }
-        - { regexp: 'password_here', line: "define( 'DB_PASSWORD', 'wordpress_password' );" }
+    - name: Enable Apache rewrite module
+      command: a2enmod rewrite
 
-    - name: Restart Apache service to apply changes
+    - name: Restart Apache
       service:
         name: apache2
         state: restarted
+
+    - name: Check if WordPress is accessible
+      uri:
+        url: "http://localhost"
+        status_code: 200
