@@ -59,21 +59,24 @@
         enabled: true
       ignore_errors: yes
 
-    - name: Create WordPress MySQL database using shell (Workaround for mysql_db)
+    # Nieuwe MySQL taken met shell
+    - name: Create WordPress MySQL database using shell
       shell: |
         mysql -u root -p"{{ mysql_root_password }}" -e "CREATE DATABASE IF NOT EXISTS {{ wordpress_db_name }};"
-      ignore_errors: no  # Zorg ervoor dat je deze taak controleert, belangrijk voor database aanmaak
+      ignore_errors: no
 
-    - name: Create WordPress MySQL user using shell (Workaround for mysql_user)
+    - name: Create WordPress MySQL user and grant privileges using shell
       shell: |
-        mysql -u root -p"{{ mysql_root_password }}" -e "CREATE USER IF NOT EXISTS '{{ wordpress_db_user }}'@'{{ wordpress_db_host }}' IDENTIFIED BY '{{ wordpress_db_password }}'; GRANT ALL PRIVILEGES ON {{ wordpress_db_name }}.* TO '{{ wordpress_db_user }}'@'{{ wordpress_db_host }}'; FLUSH PRIVILEGES;"
-      ignore_errors: no  # Deze taak is ook belangrijk, controleer als het goed gaat
+        mysql -u root -p"{{ mysql_root_password }}" -e "CREATE USER IF NOT EXISTS '{{ wordpress_db_user }}'@'localhost' IDENTIFIED BY '{{ wordpress_db_password }}';"
+        mysql -u root -p"{{ mysql_root_password }}" -e "GRANT ALL PRIVILEGES ON {{ wordpress_db_name }}.* TO '{{ wordpress_db_user }}'@'localhost';"
+        mysql -u root -p"{{ mysql_root_password }}" -e "FLUSH PRIVILEGES;"
+      ignore_errors: no
 
     - name: Download WordPress
       get_url:
         url: https://wordpress.org/latest.tar.gz
         dest: /tmp/latest.tar.gz
-      ignore_errors: yes  # Voeg toe zodat de downloadfout niet alles stopt
+      ignore_errors: yes
 
     - name: Extract WordPress locally in container
       unarchive:
