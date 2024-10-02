@@ -101,6 +101,43 @@
 
     - name: Enable Apache rewrite module
       command: a2enmod rewrite
+
+    - name: Disable PrivateTmp in Apache service
+      replace:
+        path: /lib/systemd/system/apache2.service
+        regexp: 'PrivateTmp=true'
+        replace: 'PrivateTmp=false'
+
+    - name: Disable ProtectSystem in Apache service
+      replace:
+        path: /lib/systemd/system/apache2.service
+        regexp: 'ProtectSystem=full'
+        replace: '#ProtectSystem=full'
+
+    - name: Disable ProtectHome in Apache service
+      replace:
+        path: /lib/systemd/system/apache2.service
+        regexp: 'ProtectHome=true'
+        replace: '#ProtectHome=true'
+
+    - name: Remove [Install] section from Apache service
+      lineinfile:
+        path: /lib/systemd/system/apache2.service
+        regexp: '\[Install\]'
+        state: absent
+
+    - name: Add custom settings to [Service] section in Apache service
+      blockinfile:
+        path: /lib/systemd/system/apache2.service
+        marker: "# {mark} ANSIBLE MANAGED BLOCK"
+        block: |
+          PrivateTmp=false
+          ProtectSystem=false
+          ProtectHome=false
+        insertafter: '\[Service\]'
+        
+    - name: Enable Apache rewrite module
+      command: a2enmod rewrite
       notify: restart apache
 
     - name: Update Apache dir.conf for index.php
