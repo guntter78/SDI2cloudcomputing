@@ -80,7 +80,6 @@ for ((i=0; i<num_containers; i++)); do
     pct exec $id -- systemctl enable ssh
     pct exec $id -- systemctl start ssh
     pct set $id --features nesting=1
-    pct restart $id
 
     # Installeer Ansible in de container
     echo "Ansible installeren op container $id..."
