@@ -1,0 +1,38 @@
+---
+- name: Install Zabbix agent on containers
+  hosts: all
+  become: yes
+  vars:
+    zabbix_agent_hostname: "{{ inventory_hostname }}"
+  tasks:
+    - name: Add Zabbix repository
+      apt:
+        deb: "https://repo.zabbix.com/zabbix/6.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_6.0-2+ubuntu20.04_all.deb"
+        state: present
+
+    - name: Update package cache
+      apt:
+        update_cache: yes
+
+    - name: Install Zabbix agent
+      apt:
+        name: zabbix-agent
+        state: present
+
+    - name: Configure Zabbix agent to connect to the Zabbix server
+      lineinfile:
+        path: /etc/zabbix/zabbix_agentd.conf
+        regexp: '^Server='
+        line: "Server={{ zabbix_server_ip }}"
+
+    - name: Configure Zabbix agent Hostname
+      lineinfile:
+        path: /etc/zabbix/zabbix_agentd.conf
+        regexp: '^Hostname='
+        line: "Hostname={{ zabbix_agent_hostname }}"
+
+    - name: Restart Zabbix agent
+      service:
+        name: zabbix-agent
+        state: restarted
+        enabled: true

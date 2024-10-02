@@ -8,6 +8,8 @@ echo "Voer de server naam prefix in:"
 read servername
 echo "Voer het laatste octet van het server IP in (start octet):"
 read last_octet
+echo "Voer het IP-adres van de monitoring server in:"
+read monitor_ip 
 
 # Basisinstellingen
 arch_type=amd64
@@ -87,7 +89,7 @@ for ((i=0; i<num_containers; i++)); do
     pct exec $id -- apt-add-repository --yes --update ppa:ansible/ansible
     pct exec $id -- apt-get install -y ansible
 
-    # Clone de repository binnen de container nadat Ansible is geïnstalleerd
+    # Clone de repository binnen de container nadat Ansible is geinstalleerd
     pct exec $id -- git clone https://github.com/guntter78/SDI2cloudcomputing.git /SDI2cloudcomputing
     if [ $? -ne 0 ]; then
         echo "Fout bij het klonen van de GitHub repository op container $id."
@@ -98,6 +100,11 @@ for ((i=0; i<num_containers; i++)); do
     echo "Voer het Ansible playbook uit op container $id"
     pct exec $id -- ansible-playbook -i localhost, /SDI2cloudcomputing/ansible/wordpress_playbook.yml \
       && echo "WordPress installatie playbook uitgevoerd op container $id"
+
+    # Voer het Zabbix-agent playbook uit, geef het monitor IP door als variabele
+    echo "Voer het Zabbix-agent playbook uit op container $id"
+    pct exec $id -- ansible-playbook -i localhost, /SDI2cloudcomputing/ansible/zabbix_agent_playbook.yml --extra-vars "zabbix_server_ip=$monitor_ip" \
+      && echo "Zabbix-agent geinstalleerd op container $id"
 
     # Apache service security instellingen uitschakelen
     echo "Apache configuratie aanpassen in container $id"
