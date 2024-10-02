@@ -74,9 +74,32 @@
         creates: /var/www/html/wp-config-sample.php
       ignore_errors: yes
 
-    - name: Verify WordPress files are in the right place
-      command: ls -l /var/www/html
-      ignore_errors: yes
+    - name: Move WordPress files to /var/www/html
+      shell: |
+        mv /var/www/html/wordpress/* /var/www/html/
+        rm -rf /var/www/html/wordpress latest.tar.gz
+      ignore_errors: no
+
+    - name: Configure wp-config.php with database settings
+      lineinfile:
+        path: /var/www/html/wp-config.php
+        regexp: 'database_name_here'
+        line: "define('DB_NAME', '{{ wordpress_db_name }}');"
+      notify: restart apache
+
+    - name: Set DB_USER in wp-config.php
+      lineinfile:
+        path: /var/www/html/wp-config.php
+        regexp: 'username_here'
+        line: "define('DB_USER', '{{ wordpress_db_user }}');"
+      notify: restart apache
+
+    - name: Set DB_PASSWORD in wp-config.php
+      lineinfile:
+        path: /var/www/html/wp-config.php
+        regexp: 'password_here'
+        line: "define('DB_PASSWORD', '{{ wordpress_db_password }}');"
+      notify: restart apache
 
     - name: Set proper permissions for WordPress
       file:
@@ -85,68 +108,17 @@
         group: www-data
         mode: '0755'
         recurse: yes
-      ignore_errors: yes
-
-    - name: Create wp-config.php
-      copy:
-        dest: /var/www/html/wp-config.php
-        content: |
-          <?php
-          define('DB_NAME', '{{ wordpress_db_name }}');
-          define('DB_USER', '{{ wordpress_db_user }}');
-          define('DB_PASSWORD', '{{ wordpress_db_password }}');
-          define('DB_HOST', '{{ wordpress_db_host }}');
-          define('WP_SITEURL', '{{ wordpress_site_url }}');
-          define('WP_HOME', '{{ wordpress_site_url }}');
-          define('FS_METHOD', 'direct');
-          ?>
-        owner: www-data
-        group: www-data
-        mode: '0644'
-      ignore_errors: yes
 
     - name: Enable Apache rewrite module
       command: a2enmod rewrite
       ignore_errors: yes
 
-    - name: Disable PrivateTmp in Apache service
-      replace:
-        path: /lib/systemd/system/apache2.service
-        regexp: 'PrivateTmp=true'
-        replace: 'PrivateTmp=false'
-      ignore_errors: yes
-
-    - name: Disable ProtectSystem in Apache service
-      replace:
-        path: /lib/systemd/system/apache2.service
-        regexp: 'ProtectSystem=full'
-        replace: '#ProtectSystem=full'
-      ignore_errors: yes
-
-    - name: Disable ProtectHome in Apache service
-      replace:
-        path: /lib/systemd/system/apache2.service
-        regexp: 'ProtectHome=true'
-        replace: '#ProtectHome=true'
-      ignore_errors: yes
-
-    - name: Remove [Install] section from Apache service
+    - name: Update Apache dir.conf for index.php
       lineinfile:
-        path: /lib/systemd/system/apache2.service
-        regexp: '\[Install\]'
-        state: absent
-      ignore_errors: yes
-
-    - name: Add custom settings to [Service] section in Apache service
-      blockinfile:
-        path: /lib/systemd/system/apache2.service
-        marker: "# {mark} ANSIBLE MANAGED BLOCK"
-        block: |
-          PrivateTmp=false
-          ProtectSystem=false
-          ProtectHome=false
-        insertafter: '\[Service\]'
-      ignore_errors: yes
+        path: /etc/apache2/mods-enabled/dir.conf
+        regexp: 'DirectoryIndex'
+        line: 'DirectoryIndex index.php index.html'
+      notify: restart apache
 
     - name: Reload systemd
       command: systemctl daemon-reload
@@ -156,10 +128,14 @@
       service:
         name: apache2
         state: restarted
-      ignore_errors: yes
 
     - name: Check if WordPress is accessible
       uri:
         url: "http://localhost"
         status_code: 200
-      ignore_errors: yes
+
+  handlers:
+    - name: restart apache
+      service:
+        name: apache2
+        state: restarted
