@@ -1,6 +1,8 @@
 ---
 - name: Install Zabbix agent on containers
-  hosts: all
+  hosts: localhost
+  become: yes
+  connection: local
   become: yes
   vars:
     zabbix_agent_hostname: "{{ inventory_hostname }}"
