@@ -17,89 +17,86 @@
     mysql_root_password: your_root_password
 
   tasks:
-    - name: Update and upgrade the system
+    - name: Update apt cache
       apt:
         update_cache: yes
-        upgrade: dist
+        cache_valid_time: 3600
       ignore_errors: yes
 
-    - name: Install Apache2
-      apt:
-        name: apache2
-        state: present
-      ignore_errors: yes
-
-    - name: Enable Apache to start on boot
-      systemd:
-        name: apache2
-        enabled: yes
-        state: started
-
-    - name: Install MySQL server
-      apt:
-        name: mysql-server
-        state: present
-      ignore_errors: yes
-
-    - name: Install PHP and required modules
+    - name: Install required packages (Apache, MySQL, PHP, and Curl)
       apt:
         name:
+          - apache2
+          - mysql-server
           - php
-          - libapache2-mod-php
           - php-mysql
+          - libapache2-mod-php
+          - php-cli
           - php-curl
           - php-gd
-          - php-imagick
           - php-mbstring
           - php-xml
           - php-xmlrpc
+          - curl
+          - wget
         state: present
       ignore_errors: yes
 
-    - name: Restart Apache after PHP installation
+    - name: Start and enable MySQL
       service:
-        name: apache2
-        state: restarted
+        name: mysql
+        state: started
+        enabled: true
+      ignore_errors: yes
 
-    - name: Create WordPress MySQL database and user
+    - name: Create WordPress MySQL database using shell
       shell: |
-        mysql -e "CREATE DATABASE IF NOT EXISTS {{ wordpress_db_name }};"
-        mysql -e "CREATE USER IF NOT EXISTS '{{ wordpress_db_user }}'@'localhost' IDENTIFIED BY '{{ wordpress_db_password }}';"
-        mysql -e "GRANT ALL PRIVILEGES ON {{ wordpress_db_name }}.* TO '{{ wordpress_db_user }}'@'localhost';"
-        mysql -e "FLUSH PRIVILEGES;"
+        mysql -u root -p"{{ mysql_root_password }}" -e "CREATE DATABASE IF NOT EXISTS {{ wordpress_db_name }};"
+      ignore_errors: no
+
+    - name: Create WordPress MySQL user and grant privileges using shell
+      shell: |
+        mysql -u root -p"{{ mysql_root_password }}" -e "CREATE USER IF NOT EXISTS '{{ wordpress_db_user }}'@'localhost' IDENTIFIED BY '{{ wordpress_db_password }}';"
+        mysql -u root -p"{{ mysql_root_password }}" -e "GRANT ALL PRIVILEGES ON {{ wordpress_db_name }}.* TO '{{ wordpress_db_user }}'@'localhost';"
+        mysql -u root -p"{{ mysql_root_password }}" -e "FLUSH PRIVILEGES;"
       ignore_errors: no
 
     - name: Download WordPress
       get_url:
         url: https://wordpress.org/latest.tar.gz
-        dest: /var/www/html/latest.tar.gz
+        dest: /tmp/latest.tar.gz
       ignore_errors: yes
 
-    - name: Extract WordPress
+    - name: Extract WordPress locally in container
       unarchive:
-        src: /var/www/html/latest.tar.gz
+        src: /tmp/latest.tar.gz
         dest: /var/www/html/
-        remote_src: yes
-
-    - name: Move WordPress files and clean up
-      shell: |
-        mv /var/www/html/wordpress/* /var/www/html/
-        rm -rf /var/www/html/wordpress latest.tar.gz
-      ignore_errors: no
+        creates: /var/www/html/wp-config-sample.php
+      ignore_errors: yes
 
     - name: Copy wp-config-sample.php to wp-config.php
       command: cp /var/www/html/wp-config-sample.php /var/www/html/wp-config.php
       ignore_errors: no
 
-    - name: Configure WordPress
+    - name: Configure wp-config.php with database settings
       lineinfile:
         path: /var/www/html/wp-config.php
-        regexp: "{{ item.search }}"
-        line: "{{ item.replace }}"
-      loop:
-        - { search: 'database_name_here', replace: "define('DB_NAME', '{{ wordpress_db_name }}');" }
-        - { search: 'username_here', replace: "define('DB_USER', '{{ wordpress_db_user }}');" }
-        - { search: 'password_here', replace: "define('DB_PASSWORD', '{{ wordpress_db_password }}');" }
+        regexp: 'database_name_here'
+        line: "define('DB_NAME', '{{ wordpress_db_name }}');"
+      notify: restart apache
+
+    - name: Set DB_USER in wp-config.php
+      lineinfile:
+        path: /var/www/html/wp-config.php
+        regexp: 'username_here'
+        line: "define('DB_USER', '{{ wordpress_db_user }}');"
+      notify: restart apache
+
+    - name: Set DB_PASSWORD in wp-config.php
+      lineinfile:
+        path: /var/www/html/wp-config.php
+        regexp: 'password_here'
+        line: "define('DB_PASSWORD', '{{ wordpress_db_password }}');"
       notify: restart apache
 
     - name: Set proper permissions for WordPress
@@ -109,10 +106,11 @@
         group: www-data
         mode: '0755'
         recurse: yes
+      ignore_errors: yes
 
     - name: Enable Apache rewrite module
       command: a2enmod rewrite
-      notify: restart apache
+      ignore_errors: yes
 
     - name: Update Apache dir.conf for index.php
       lineinfile:
@@ -123,15 +121,17 @@
 
     - name: Reload systemd
       command: systemctl daemon-reload
+      ignore_errors: yes
 
     - name: Restart Apache
       service:
         name: apache2
         state: restarted
+      ignore_errors: yes
 
     - name: Check if WordPress is accessible
       uri:
-        url: "{{ wordpress_site_url }}"
+        url: "http://localhost"
         status_code: 200
       ignore_errors: yes
 
