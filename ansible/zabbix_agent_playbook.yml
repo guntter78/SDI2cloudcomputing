@@ -3,16 +3,22 @@
   hosts: localhost
   become: yes
   connection: local
-  become: yes
   vars:
     zabbix_agent_hostname: "{{ inventory_hostname }}"
+    zabbix_server_ip: "{{ zabbix_server_ip }}"
+
   tasks:
-    - name: Add Zabbix repository
-      apt:
-        deb: "https://repo.zabbix.com/zabbix/6.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_6.0-2+ubuntu20.04_all.deb"
+    - name: Add Zabbix APT repository key
+      apt_key:
+        url: https://repo.zabbix.com/zabbix-official-repo.key
         state: present
 
-    - name: Update package cache
+    - name: Add Zabbix repository for Ubuntu 24.04
+      apt_repository:
+        repo: "deb https://repo.zabbix.com/zabbix/7.0/ubuntu/ $(lsb_release -sc) main"
+        state: present
+
+    - name: Update apt cache
       apt:
         update_cache: yes
 
@@ -26,6 +32,7 @@
         path: /etc/zabbix/zabbix_agentd.conf
         regexp: '^Server='
         line: "Server={{ zabbix_server_ip }}"
+        insertafter: '^#.*Server='
 
     - name: Configure Zabbix agent Hostname
       lineinfile:
