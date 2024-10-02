@@ -29,12 +29,6 @@
         state: present
       ignore_errors: yes
 
-    - name: Enable Apache to start on boot
-      systemd:
-        name: apache2
-        enabled: yes
-        state: started
-
     - name: Install MySQL server
       apt:
         name: mysql-server
