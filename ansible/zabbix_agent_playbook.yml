@@ -1,47 +1,43 @@
 ---
-- name: Install Zabbix agent on containers
+- name: Install and configure Zabbix agent on client
   hosts: localhost
   become: yes
   connection: local
   vars:
-    zabbix_agent_hostname: "{{ inventory_hostname }}"
-    zabbix_server_ip: "{{ zabbix_server_ip }}"
+    zabbix_server_ip: "{{ zabbix_server_ip }}"  # Server IP wordt doorgegeven vanuit je bash-script
+    client_ip: "{{ ansible_default_ipv4.address }}"  # Client IP automatisch verkrijgen
 
   tasks:
-    - name: Add Zabbix APT repository key
-      apt_key:
-        url: https://repo.zabbix.com/zabbix-official-repo.key
-        state: present
-
-    - name: Add Zabbix repository for Ubuntu 24.04
-      apt_repository:
-        repo: "deb https://repo.zabbix.com/zabbix/7.0/ubuntu/ $(lsb_release -sc) main"
-        state: present
-
-    - name: Update apt cache
-      apt:
-        update_cache: yes
-
     - name: Install Zabbix agent
       apt:
         name: zabbix-agent
         state: present
+      ignore_errors: no
 
-    - name: Configure Zabbix agent to connect to the Zabbix server
+    - name: Configure Zabbix agent
       lineinfile:
         path: /etc/zabbix/zabbix_agentd.conf
         regexp: '^Server='
-        line: "Server={{ zabbix_server_ip }}"
-        insertafter: '^#.*Server='
+        line: "Server={{ zabbix_server_ip }}"  # Zabbix-server IP
 
-    - name: Configure Zabbix agent Hostname
+    - name: Configure Zabbix agent to allow server to connect
+      lineinfile:
+        path: /etc/zabbix/zabbix_agentd.conf
+        regexp: '^ServerActive='
+        line: "ServerActive={{ zabbix_server_ip }}"  # Actieve server IP
+
+    - name: Configure Zabbix agent with client IP
       lineinfile:
         path: /etc/zabbix/zabbix_agentd.conf
         regexp: '^Hostname='
-        line: "Hostname={{ zabbix_agent_hostname }}"
+        line: "Hostname={{ client_ip }}"  # Client IP gebruiken
 
     - name: Restart Zabbix agent
-      service:
+      systemd:
         name: zabbix-agent
         state: restarted
-        enabled: true
+
+    - name: Enable Zabbix agent to start on boot
+      systemd:
+        name: zabbix-agent
+        enabled: yes

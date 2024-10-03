@@ -1,0 +1,57 @@
+---
+- name: Basic installation of Zabbix Monitoring Server
+  hosts: localhost
+  become: yes
+  connection: local
+  vars:
+    zabbix_db_name: zabbix
+    zabbix_db_user: zabbix_user
+    zabbix_db_password: strongpassword
+
+  tasks:
+    - name: Update the system
+      apt:
+        update_cache: yes
+        upgrade: dist
+      ignore_errors: yes
+
+    - name: Install MySQL and Zabbix server
+      apt:
+        name:
+          - mysql-server
+          - zabbix-server-mysql
+          - zabbix-sql-scripts
+          - zabbix-agent
+        state: present
+      ignore_errors: yes
+
+    - name: Create Zabbix MySQL database and user
+      shell: |
+        mysql -e "CREATE DATABASE IF NOT EXISTS {{ zabbix_db_name }} CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;"
+        mysql -e "CREATE USER IF NOT EXISTS '{{ zabbix_db_user }}'@'localhost' IDENTIFIED BY '{{ zabbix_db_password }}';"
+        mysql -e "GRANT ALL PRIVILEGES ON {{ zabbix_db_name }}.* TO '{{ zabbix_db_user }}'@'localhost';"
+        mysql -e "FLUSH PRIVILEGES;"
+      ignore_errors: no
+
+    - name: Set log_bin_trust_function_creators to 1
+      shell: |
+        mysql -e "SET GLOBAL log_bin_trust_function_creators = 1;"
+      ignore_errors: no
+
+    - name: Import Zabbix database schema
+      shell: |
+        zcat /usr/share/zabbix-sql-scripts/mysql/server.sql.gz | mysql --default-character-set=utf8mb4 -u{{ zabbix_db_user }} -p{{ zabbix_db_password }} {{ zabbix_db_name }}
+      register: import_result
+      ignore_errors: no
+
+    - name: Show import result
+      debug:
+        var: import_result.stdout_lines
+
+    - name: Restart Zabbix services
+      systemd:
+        name: "{{ item }}"
+        state: restarted
+      loop:
+        - zabbix-server
+        - zabbix-agent
