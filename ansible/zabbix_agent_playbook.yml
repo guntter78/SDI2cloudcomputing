@@ -8,39 +8,43 @@
     client_ip: "{{ ansible_default_ipv4.address }}"  # Client IP automatisch verkrijgen
 
   tasks:
-    - name: Debug Zabbix server IP
-      debug:
-        msg: "Zabbix server IP is: {{ zabbix_server_ip }}"
+    - name: Download Zabbix repository package
+      get_url:
+        url: "https://repo.zabbix.com/zabbix/7.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_7.0-2+ubuntu24.04_all.deb"
+        dest: "/tmp/zabbix-release_7.0-2+ubuntu24.04_all.deb"
+
+    - name: Install Zabbix repository
+      apt:
+        deb: "/tmp/zabbix-release_7.0-2+ubuntu24.04_all.deb"
 
     - name: Update the system
       apt:
         update_cache: yes
-        upgrade: dist
       ignore_errors: yes
 
     - name: Install Zabbix agent
       apt:
         name: zabbix-agent
         state: present
-      ignore_errors: yes
+      ignore_errors: no
 
     - name: Configure Zabbix agent
       lineinfile:
         path: /etc/zabbix/zabbix_agentd.conf
         regexp: '^Server='
-        line: "Server={{ zabbix_server_ip }}"  # Zabbix-server IP
+        line: "Server={{ zabbix_server_ip }}"
 
     - name: Configure Zabbix agent to allow server to connect
       lineinfile:
         path: /etc/zabbix/zabbix_agentd.conf
         regexp: '^ServerActive='
-        line: "ServerActive={{ zabbix_server_ip }}"  # Actieve server IP
+        line: "ServerActive={{ zabbix_server_ip }}"
 
     - name: Configure Zabbix agent with client IP
       lineinfile:
         path: /etc/zabbix/zabbix_agentd.conf
         regexp: '^Hostname='
-        line: "Hostname={{ client_ip }}"  # Client IP gebruiken
+        line: "Hostname={{ client_ip }}"
 
     - name: Restart Zabbix agent
       systemd:
