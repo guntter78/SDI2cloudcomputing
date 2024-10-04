@@ -106,13 +106,18 @@ for ((i=0; i<num_containers; i++)); do
     pct exec $id -- ansible-playbook -i localhost, /SDI2cloudcomputing/ansible/zabbix_agent_playbook.yml --extra-vars "zabbix_server_ip=$monitor_ip" \
       && echo "Zabbix-agent geinstalleerd op container $id"
 
-    # Apache service security instellingen uitschakelen
-    echo "Apache configuratie aanpassen in container $id"
-    pct exec $id -- sed -i 's/PrivateTmp=true/PrivateTmp=false/' /lib/systemd/system/apache2.service
-    pct exec $id -- sed -i 's/ProtectSystem=full/#ProtectSystem=full/' /lib/systemd/system/apache2.service
-    pct exec $id -- sed -i 's/ProtectHome=true/#ProtectHome=true/' /lib/systemd/system/apache2.service
-    pct exec $id -- sed -i '/\[Install\]/d' /lib/systemd/system/apache2.service
-    pct exec $id -- sed -i '/\[Service\]/a PrivateTmp=false\nProtectSystem=false\nProtectHome=false' /lib/systemd/system/apache2.service
+    # Voer het Zabbix-agent playbook uit, geef het monitor IP door als variabele
+    echo "Voer het firewall playbook uit op container $id"
+    pct exec $id -- ansible-playbook -i localhost, /SDI2cloudcomputing/ansible/container_firewall_playbook.yml \
+      && echo "Firewall op container $id"
+
+    # Apache service security instellingen uitschakelen overbodig omdat het al in de playbook zit
+    # echo "Apache configuratie aanpassen in container $id"
+    # pct exec $id -- sed -i 's/PrivateTmp=true/PrivateTmp=false/' /lib/systemd/system/apache2.service
+    # pct exec $id -- sed -i 's/ProtectSystem=full/#ProtectSystem=full/' /lib/systemd/system/apache2.service
+    # pct exec $id -- sed -i 's/ProtectHome=true/#ProtectHome=true/' /lib/systemd/system/apache2.service
+    # pct exec $id -- sed -i '/\[Install\]/d' /lib/systemd/system/apache2.service
+    # pct exec $id -- sed -i '/\[Service\]/a PrivateTmp=false\nProtectSystem=false\nProtectHome=false' /lib/systemd/system/apache2.service
 
     # Herlaad systemd en herstart Apache
     pct exec $id -- systemctl daemon-reload

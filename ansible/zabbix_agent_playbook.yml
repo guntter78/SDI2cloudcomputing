@@ -4,8 +4,9 @@
   become: yes
   connection: local
   vars:
-    zabbix_server_ip: "{{ zabbix_server_ip }}"  # Server IP van de Zabbix-server
-    client_ip: "{{ ansible_default_ipv4.address }}"  # Client IP automatisch verkrijgen
+    zabbix_server_ip: "{{ zabbix_server_ip }}"  
+    client_ip: "{{ ansible_default_ipv4.address }}" 
+    host_metadata: "wordpresscontainer"
 
   tasks:
     - name: Download Zabbix repository package
@@ -20,13 +21,11 @@
     - name: Update the system
       apt:
         update_cache: yes
-      ignore_errors: yes
 
     - name: Install Zabbix agent
       apt:
         name: zabbix-agent
         state: present
-      ignore_errors: no
 
     - name: Configure Zabbix agent
       lineinfile:
@@ -45,6 +44,12 @@
         path: /etc/zabbix/zabbix_agentd.conf
         regexp: '^Hostname='
         line: "Hostname={{ client_ip }}"
+
+    - name: Configure Zabbix agent HostMetadata
+      lineinfile:
+        path: /etc/zabbix/zabbix_agentd.conf
+        regexp: '^# HostMetadata='
+        line: "HostMetadata={{ host_metadata }}"
 
     - name: Restart Zabbix agent
       systemd:
