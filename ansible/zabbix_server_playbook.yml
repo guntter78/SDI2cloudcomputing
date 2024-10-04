@@ -1,5 +1,5 @@
 ---
-- name: Basic installation of Zabbix Monitoring Server
+- name: Install MySQL and Zabbix server
   hosts: localhost
   become: yes
   connection: local
@@ -9,20 +9,47 @@
     zabbix_db_password: strongpassword
 
   tasks:
-    - name: Update the system
+    - name: Update and upgrade the system
       apt:
         update_cache: yes
         upgrade: dist
-      ignore_errors: yes
 
-    - name: Install MySQL and Zabbix server
+    - name: Download Zabbix repository package
+      get_url:
+        url: "https://repo.zabbix.com/zabbix/7.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_7.0-2+ubuntu24.04_all.deb"
+        dest: "/tmp/zabbix-release_7.0-2+ubuntu24.04_all.deb"
+
+    - name: Install Zabbix repository
+      apt:
+        deb: "/tmp/zabbix-release_7.0-2+ubuntu24.04_all.deb"
+
+    - name: Update package index after adding Zabbix repository
+      apt:
+        update_cache: yes
+
+    - name: Install MySQL server
+      apt:
+        name: mysql-server
+        state: present
+
+    - name: Install Zabbix server and agent
       apt:
         name:
-          - mysql-server
           - zabbix-server-mysql
+          - zabbix-frontend-php
+          - zabbix-apache-conf
           - zabbix-sql-scripts
           - zabbix-agent
         state: present
+
+    - name: Set global variable for log_bin_trust_function_creators
+      shell: |
+        mysql -e "SET GLOBAL log_bin_trust_function_creators = 1;"
+      ignore_errors: no
+
+    - name: Drop existing Zabbix database if it exists
+      shell: |
+        mysql -e "DROP DATABASE IF EXISTS {{ zabbix_db_name }};"
       ignore_errors: yes
 
     - name: Create Zabbix MySQL database and user
@@ -33,25 +60,47 @@
         mysql -e "FLUSH PRIVILEGES;"
       ignore_errors: no
 
-    - name: Set log_bin_trust_function_creators to 1
-      shell: |
-        mysql -e "SET GLOBAL log_bin_trust_function_creators = 1;"
-      ignore_errors: no
-
     - name: Import Zabbix database schema
       shell: |
         zcat /usr/share/zabbix-sql-scripts/mysql/server.sql.gz | mysql --default-character-set=utf8mb4 -u{{ zabbix_db_user }} -p{{ zabbix_db_password }} {{ zabbix_db_name }}
-      register: import_result
       ignore_errors: no
 
-    - name: Show import result
-      debug:
-        var: import_result.stdout_lines
-
-    - name: Restart Zabbix services
-      systemd:
-        name: "{{ item }}"
-        state: restarted
+    - name: Update Zabbix server configuration
+      lineinfile:
+        path: /etc/zabbix/zabbix_server.conf
+        regexp: "{{ item.search }}"
+        line: "{{ item.replace }}"
       loop:
-        - zabbix-server
-        - zabbix-agent
+        - { search: '^DBHost=', replace: 'DBHost=localhost' }
+        - { search: '^DBName=', replace: 'DBName={{ zabbix_db_name }}' }
+        - { search: '^DBUser=', replace: 'DBUser={{ zabbix_db_user }}' }
+        - { search: '^DBPassword=', replace: 'DBPassword={{ zabbix_db_password }}' }
+      notify: restart zabbix-server
+
+    - name: Start Zabbix server and agent
+      service:
+        name: zabbix-server
+        state: started
+      notify: restart zabbix-agent
+
+    - name: Enable Zabbix server and agent to start on boot
+      systemd:
+        name: zabbix-server
+        enabled: yes
+
+    - name: Check if Zabbix UI is accessible
+      uri:
+        url: "http://{{ ansible_default_ipv4.address }}/zabbix"
+        status_code: 200
+      ignore_errors: yes
+
+  handlers:
+    - name: restart zabbix-server
+      service:
+        name: zabbix-server
+        state: restarted
+
+    - name: restart zabbix-agent
+      service:
+        name: zabbix-agent
+        state: restarted
