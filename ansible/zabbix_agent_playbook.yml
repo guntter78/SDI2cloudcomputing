@@ -4,15 +4,25 @@
   become: yes
   connection: local
   vars:
-    zabbix_server_ip: "{{ zabbix_server_ip }}"  # Server IP wordt doorgegeven vanuit je bash-script
+    zabbix_server_ip: "{{ zabbix_server_ip }}"  # Server IP van de Zabbix-server
     client_ip: "{{ ansible_default_ipv4.address }}"  # Client IP automatisch verkrijgen
 
   tasks:
+    - name: Debug Zabbix server IP
+      debug:
+        msg: "Zabbix server IP is: {{ zabbix_server_ip }}"
+
+    - name: Update the system
+      apt:
+        update_cache: yes
+        upgrade: dist
+      ignore_errors: yes
+
     - name: Install Zabbix agent
       apt:
         name: zabbix-agent
         state: present
-      ignore_errors: no
+      ignore_errors: yes
 
     - name: Configure Zabbix agent
       lineinfile:
