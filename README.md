@@ -20,7 +20,7 @@ Zodra deze variabelen zijn ingevoerd, maakt het script containers aan, inclusief
 - **Firewall-configuratie** om de nodige services te beveiligen.
 
 ### 2. `makevm.sh`
-Dit script creëert een aantal servers (VM's) in Proxmox met de juiste specificaties zoals CPU, RAM en opslagruimte. Je kunt zelf bepalen hoeveel servers er aangemaakt moeten worden, en het script automatiseert de configuratie van deze VM's binnen Proxmox.
+Dit script creëert een aantal servers (VM's) in Proxmox met de juiste specificaties zoals CPU, RAM en opslagruimte. Je kunt zelf bepalen hoeveel servers er aangemaakt moeten worden en het script automatiseert de configuratie van deze VM's binnen Proxmox.
 
 ### 3. `copy.vm`
 Dit script kopieert een aantal bestaande servers binnen Proxmox, vergelijkbaar met het aanmaken van containers, maar met een belangrijk verschil: in plaats van WordPress, worden deze VM's geconfigureerd om CRM-software te draaien. Net zoals bij de container-setup, vraagt het script naar het aantal VM's en de benodigde specificaties.
@@ -77,9 +77,7 @@ De laatste twee bash-scripts (`copy.vm` en `crm.sh`) en het Zabbix-server playbo
 4. Volg de prompts in de scripts om het aantal servers, Proxmox ID's, servernamen, IP-adressen en monitoring server IP in te vullen.
 
 ## Toekomstige uitbreidingen
-- Volledige test van de VM-gerelateerde scripts zodra de Proxmox-server weer beschikbaar is.
-- Volledige configuratie van de Zabbix-server via Ansible.
-- Verbeterde monitoring en logging functionaliteit.
+- Volledige test van de VM-gerelateerde scripts.
 
 Voor volledige geschiedenis van het bouwen van de script zie je op mijn github bij de commits.
 https://github.com/guntter78/SDI2cloudcomputing
