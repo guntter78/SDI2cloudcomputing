@@ -6,7 +6,6 @@
   vars:
     zabbix_server_ip: "{{ zabbix_server_ip }}"  
     client_ip: "{{ ansible_default_ipv4.address }}" 
-    host_metadata: "wordpresscontainer"
 
   tasks:
     - name: Download Zabbix repository package

@@ -107,7 +107,7 @@ for ((i=0; i<num_containers; i++)); do
 
     # Voer het Zabbix-agent playbook uit, geef het monitor IP door als variabele
     echo "Voer het Zabbix-agent playbook uit op container $id"
-    pct exec $id -- ansible-playbook -i localhost, /SDI2cloudcomputing/ansible/zabbix_agent_playbook.yml --extra-vars "zabbix_server_ip=$monitor_ip" \
+    pct exec $id -- ansible-playbook -i localhost, /SDI2cloudcomputing/ansible/zabbix_agent_playbook.yml --extra-vars "zabbix_server_ip=$monitor_ip host_metadata=wordpresscontainer" \
       && echo "Zabbix-agent geinstalleerd op container $id"
 
     # Voer het firewall playbook uit op container $id
