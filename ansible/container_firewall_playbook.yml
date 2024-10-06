@@ -1,5 +1,5 @@
 ---
-- name: Configure Firewall for WordPress Server
+- name: Configure Firewall for Container/Server
   hosts: localhost
   become: yes
   connection: local
