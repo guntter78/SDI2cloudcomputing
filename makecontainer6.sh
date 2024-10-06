@@ -25,6 +25,10 @@ dns="8.8.8.8"
 rate=50000
 start_wait_time=20
 
+# SSH sleutels opslaan in deze directory
+ssh_base_path="/root/sshkeyscontainers"
+mkdir -p $ssh_base_path
+
 # Volledig pad naar het template-bestand
 template_path="/var/lib/vz/template/cache/ubuntu-24.04-standard_24.04-2_amd64.tar.zst"
 
@@ -35,21 +39,12 @@ for ((i=0; i<num_containers; i++)); do
     hostname="${servername}${i}"
     net0_name="eth$id"
 
-    # Controleer of de container ID al bestaat
-    while pct status $id &> /dev/null; do
-        echo "Container met ID $id bestaat al. Verhoog de server ID."
-        id=$((id + 1))  # Verhoog de server ID
-        hostname="${servername}${id}"  # Pas de hostname aan
-        ip="10.24.36.$((last_octet + i))/24"  # Pas het IP-adres aan
-    done
+    # Controleer of de container al bestaat
+    if pct status $id &> /dev/null; then
+        echo "Container met ID $id bestaat al. Sla over."
+        continue
+    fi
 
-    # Controleer of de hostname al bestaat
-    while pct list | grep -q "$hostname"; do
-        echo "Hostname '$hostname' bestaat al. Verhoog de server ID."
-        id=$((id + 1))  # Verhoog de server ID
-        hostname="${servername}${id}"  # Maak een nieuwe hostname
-        ip="10.24.36.$((last_octet + i))/24"  # Pas het IP-adres aan
-    done
     echo "Container $id wordt aangemaakt met IP $ip en hostname $hostname"
 
     pct create $id $template_path \
@@ -115,20 +110,35 @@ for ((i=0; i<num_containers; i++)); do
     pct exec $id -- ansible-playbook -i localhost, /SDI2cloudcomputing/ansible/zabbix_agent_playbook.yml --extra-vars "zabbix_server_ip=$monitor_ip" \
       && echo "Zabbix-agent geinstalleerd op container $id"
 
-    # Voer het Zabbix-agent playbook uit, geef het monitor IP door als variabele
+    # Voer het firewall playbook uit op container $id
     echo "Voer het firewall playbook uit op container $id"
     pct exec $id -- ansible-playbook -i localhost, /SDI2cloudcomputing/ansible/container_firewall_playbook.yml \
-      && echo "Firewall op container $id"
+      && echo "Firewall op container $id geïnstalleerd."
 
-    # Apache service security instellingen uitschakelen overbodig omdat het al in de playbook zit
-    # echo "Apache configuratie aanpassen in container $id"
-    # pct exec $id -- sed -i 's/PrivateTmp=true/PrivateTmp=false/' /lib/systemd/system/apache2.service
-    # pct exec $id -- sed -i 's/ProtectSystem=full/#ProtectSystem=full/' /lib/systemd/system/apache2.service
-    # pct exec $id -- sed -i 's/ProtectHome=true/#ProtectHome=true/' /lib/systemd/system/apache2.service
-    # pct exec $id -- sed -i '/\[Install\]/d' /lib/systemd/system/apache2.service
-    # pct exec $id -- sed -i '/\[Service\]/a PrivateTmp=false\nProtectSystem=false\nProtectHome=false' /lib/systemd/system/apache2.service
+    # Unieke gebruikers met SSH-sleutels aanmaken in elke container
+    for user_index in 1 2; do
+        username="${servername}_user${user_index}_${i}"
+        
+        # Maak een gebruiker aan in de container
+        pct exec $id -- useradd -m -s /bin/bash $username
+        pct exec $id -- mkdir -p /home/$username/.ssh
+        pct exec $id -- chmod 700 /home/$username/.ssh
+        
+        # Genereer een unieke SSH-sleutel voor de gebruiker
+        ssh_key="${ssh_base_path}/${username}_container_${id}_id_rsa"
+        ssh_pub_key="${ssh_key}.pub"
+        ssh-keygen -t rsa -b 2048 -f $ssh_key -q -N ""
+        
+        # Kopieer de publieke sleutel naar de container
+        pct exec $id -- bash -c "echo '$(cat ${ssh_pub_key})' > /home/$username/.ssh/authorized_keys"
+        pct exec $id -- chmod 600 /home/$username/.ssh/authorized_keys
+        pct exec $id -- chown -R $username:$username /home/$username/.ssh
 
-    # Herlaad systemd en herstart Apache
+        echo "Gebruiker $username is aangemaakt met SSH-toegang."
+        echo "SSH-sleutels opgeslagen in $ssh_base_path voor $username."
+    done
+
+    # Apache service herstarten na herladen van systemd
     pct exec $id -- systemctl daemon-reload
     pct exec $id -- systemctl restart apache2
 done
