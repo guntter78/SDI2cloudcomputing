@@ -88,12 +88,6 @@
         name: zabbix-server
         enabled: yes
 
-    - name: Check if Zabbix UI is accessible
-      uri:
-        url: "http://{{ ansible_default_ipv4.address }}/zabbix"
-        status_code: 200
-      ignore_errors: yes
-
   handlers:
     - name: restart zabbix-server
       service:
