@@ -62,7 +62,7 @@ for ((i=0; i<num_vms; i++)); do
 
     # Git-repository klonen en het script uitvoeren
     echo "Cloning GitHub repository and executing the script"
-    ssh -i ${ssh_key_path} crmadmin@${new_ip} "Sudo apt-get ansible"
+    ssh -i ${ssh_key_path} crmadmin@${new_ip} "sudo apt-get ansible"
     ssh -i ${ssh_key_path} crmadmin@${new_ip} "git clone https://github.com/guntter78/SDI2cloudcomputing.git"
     ssh -i ${ssh_key_path} crmadmin@${new_ip} "sudo bash /SDI2cloudcomputing/crmvm.sh"
 
