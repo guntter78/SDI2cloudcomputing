@@ -27,7 +27,7 @@ for ((i=0; i<num_vms; i++)); do
     new_name="${vmname}${new_vmid}"
 
     echo "Cloning VM ${source_vmid} (template) from ${source_node} to ${dest_node} with name ${new_name} and IP ${new_ip}"
-    qm clone ${source_vmid} ${new_vmid} --name ${new_name} --full --target ${dest_node}
+    qm clone ${source_vmid} ${new_vmid} --name ${new_name} --full --target ${dest_node} --storage drivepool
     ssh ${dest_node} "qm start ${new_vmid}"
     
     echo "Waiting for VM ${new_vmid} to fully boot up (2 minutes)..."
