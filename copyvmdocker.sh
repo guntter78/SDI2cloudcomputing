@@ -34,7 +34,7 @@ for ((i=0; i<num_vms; i++)); do
     sleep 120
 
     # Connect met de gekloonde VM en pas settings aan
-    echo "Connecting to the cloned VM using the old IP address (${old_ip}) with user crmadmin and SSH key ${ssh_key_path}"
+    echo "Connecting to the cloned VM using the old IP address (${old_ip}) with user rudy and SSH key ${ssh_key_path}"
 
     # Update de netplan configuratie met het nieuwe IP-adres
     echo "Updating the IP address to ${new_ip} in /etc/netplan/50-cloud-init.yaml"
