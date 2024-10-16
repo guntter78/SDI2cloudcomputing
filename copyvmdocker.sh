@@ -56,7 +56,7 @@ for ((i=0; i<num_vms; i++)); do
     ssh ${dest_node} "qm reset ${new_vmid}"
     
     echo "New hostname and IP address applied for VM ${new_vmid}, Wait for 120 seconds"
-    sleep 120
+    sleep 180
     ssh ${dest_node} "qm start ${new_vmid}"
     # Git-repository klonen en het script uitvoeren
     echo "Cloning GitHub repository and executing the script"
