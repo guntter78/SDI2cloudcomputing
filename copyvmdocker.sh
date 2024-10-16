@@ -57,49 +57,15 @@ for ((i=0; i<num_vms; i++)); do
     
     echo "New hostname and IP address applied for VM ${new_vmid}, Wait for 120 seconds"
     sleep 120
-
-    
+    ssh ${dest_node} "qm start ${new_vmid}"
     # Git-repository klonen en het script uitvoeren
     echo "Cloning GitHub repository and executing the script"
+    ssh -i ${ssh_key_path} rudy@${new_ip} "sudo apt-get git"
     ssh -i ${ssh_key_path} rudy@${new_ip} "sudo apt-get ansible"
     ssh -i ${ssh_key_path} rudy@${new_ip} "git clone https://github.com/guntter78/SDI2cloudcomputing.git"
     ssh -i ${ssh_key_path} rudy@${new_ip} "sudo ansible-playbook -i localhost, /SDI2cloudcomputing/ansible/dockercontainer.yml"
 
-    # Nieuwe gebruiker aanmaken en SSH-sleutel genereren
-    new_user="user_${new_name}"
-    new_ssh_key_path="~/.ssh/sshkey_${new_name}"
 
-    echo "Creating new user ${new_user} and generating SSH key..."
-    ssh -i ${ssh_key_path} rudy@${new_ip} << EOF
-        sudo adduser --disabled-password --gecos "" ${new_user}
-        sudo mkdir -p /home/${new_user}/.ssh
-        sudo chmod 700 /home/${new_user}/.ssh
-EOF
-
-    # Genereer een nieuwe SSH-sleutel voor de nieuwe gebruiker
-    ssh-keygen -t rsa -b 2048 -f ${new_ssh_key_path} -N "" -C "${new_name}"
-    
-    # Voeg de nieuwe sleutel toe aan de VM en geef de juiste permissies
-    ssh -i ${ssh_key_path} rudy@${new_ip} "echo '$(cat ${new_ssh_key_path}.pub)' | sudo tee /home/${new_user}/.ssh/authorized_keys"
-    ssh -i ${ssh_key_path} rudy@${new_ip} "sudo chmod 600 /home/${new_user}/.ssh/authorized_keys"
-    ssh -i ${ssh_key_path} rudy@${new_ip} "sudo chown -R ${new_user}:${new_user} /home/${new_user}/.ssh"
-    
-    # Distribute the SSH key naar andere nodes
-    echo "Distributing the new SSH key for user ${new_user} to other nodes in the cluster..."
-    for node in "${cluster_nodes[@]}"; do
-        scp "${new_ssh_key_path}" root@${node}:/home/${new_user}/.ssh/
-        scp "${new_ssh_key_path}.pub" root@${node}:/home/${new_user}/.ssh/
-    done
-
-    echo "SSH key distribution completed for VM ${new_vmid} and user ${new_user}"
-
-    # Voeg de VM toe aan de CRM HA groep
-    echo "Adding VM ${new_vmid} to HA group 'CRMHA'"  # Verwijder de spatie in de HA-groepnaam
-    ha-manager add vm:${new_vmid} --group 'CRMHA'
-
-    # Zet de HA status naar 'started'
-    echo "Setting HA status to 'started' for VM ${new_vmid}"
-    ha-manager set vm:${new_vmid} --state started
 
     sleep 10
 done
