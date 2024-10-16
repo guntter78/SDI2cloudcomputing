@@ -63,7 +63,7 @@ for ((i=0; i<num_vms; i++)); do
     ssh -i ${ssh_key_path} rudy@${new_ip} "sudo apt-get install git"
     ssh -i ${ssh_key_path} rudy@${new_ip} "sudo apt-get install ansible"
     ssh -i ${ssh_key_path} rudy@${new_ip} "git clone https://github.com/guntter78/SDI2cloudcomputing.git"
-    ssh -i ${ssh_key_path} rudy@${new_ip} "sudo ansible-playbook -i localhost, /SDI2cloudcomputing/ansible/dockercontainer.yml"
+    ssh -i ${ssh_key_path} rudy@${new_ip} "sudo ansible-playbook -i localhost, /SDI2cloudcomputing/ansible/dockerplaybook.yml"
 
 
 
