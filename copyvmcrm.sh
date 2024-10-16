@@ -29,8 +29,8 @@ for ((i=0; i<num_vms; i++)); do
     new_name="${vmname}${new_vmid}"
 
     echo "Cloning VM ${source_vmid} (template) from ${source_node} to ${dest_node} with name ${new_name} and IP ${new_ip}"
-    qm clone ${source_vmid} ${new_vmid} --name ${new_name} --full --target ${dest_node} 
-    qm start ${new_vmid}
+    qm clone ${source_vmid} ${new_vmid} --name ${new_name} --full --target ${dest_node} --storage drivepool
+    ssh ${dest_node} "qm start ${new_vmid}"
     
     echo "Waiting for VM ${new_vmid} to fully boot up (2 minutes)..."
     sleep 120
@@ -40,31 +40,34 @@ for ((i=0; i<num_vms; i++)); do
 
     # Update de netplan configuratie met het nieuwe IP-adres
     echo "Updating the IP address to ${new_ip} in /etc/netplan/50-cloud-init.yaml"
-    ssh -i ${ssh_key_path} crmadmin@${old_ip} "sudo sed -i 's/  - 10.24.36\.[0-9]\{1,3\}\/24/  - ${new_ip}\/24/' /etc/netplan/50-cloud-init.yaml"
+    ssh -i ${ssh_key_path} rudy@${old_ip} "sudo sed -i 's/  - 10.24.36\.[0-9]\{1,3\}\/24/  - ${new_ip}\/24/' /etc/netplan/50-cloud-init.yaml"
     
     # Wijzig de hostname
     echo "Changing the hostname to ${new_name}"
-    ssh -i ${ssh_key_path} crmadmin@${old_ip} "sudo hostnamectl set-hostname ${new_name}"
+    ssh -i ${ssh_key_path} rudy@${old_ip} "sudo hostnamectl set-hostname ${new_name}"
+    ssh -i ${ssh_key_path} rudy@${old_ip} "sudo hostnamectl set-hostname ${new_name} --pretty"
     
     # Update het /etc/hosts bestand met de nieuwe hostname
     echo "Updating /etc/hosts with the new hostname"
-    ssh -i ${ssh_key_path} crmadmin@${old_ip} "sudo sed -i 's/127.0.1.1.*/127.0.1.1 ${new_name}/' /etc/hosts"
+    ssh -i ${ssh_key_path} rudy@${old_ip} "sudo sed -i 's/127.0.1.1.*/127.0.1.1 ${new_name}/' /etc/hosts"
     
     # Voeg de hostname toe aan het /etc/hostname bestand
     echo "Adding the new hostname to /etc/hostname"
-    ssh -i ${ssh_key_path} crmadmin@${old_ip} "echo '${new_name}' | sudo tee /etc/hostname"
+    ssh -i ${ssh_key_path} rudy@${old_ip} "echo '${new_name}' | sudo tee /etc/hostname"
     
     # Reset de VM zodat de configuratie van kracht wordt
-    qm reset ${new_vmid}
+    ssh ${dest_node} "qm reset ${new_vmid}"
     
     echo "New hostname and IP address applied for VM ${new_vmid}, Wait for 120 seconds"
     sleep 120
 
+    ssh ${dest_node} "qm start ${new_vmid}"
     # Git-repository klonen en het script uitvoeren
     echo "Cloning GitHub repository and executing the script"
-    ssh -i ${ssh_key_path} crmadmin@${new_ip} "sudo apt-get install ansible"
-    ssh -i ${ssh_key_path} crmadmin@${new_ip} "git clone https://github.com/guntter78/SDI2cloudcomputing.git"
-    ssh -i ${ssh_key_path} crmadmin@${new_ip} "sudo bash /SDI2cloudcomputing/crmvm.sh"
+    ssh -i ${ssh_key_path} rudy@${new_ip} "sudo apt-get install git"
+    ssh -i ${ssh_key_path} rudy@${new_ip} "sudo apt-get install ansible"
+    ssh -i ${ssh_key_path} rudy@${new_ip} "git clone https://github.com/guntter78/SDI2cloudcomputing.git"
+    ssh -i ${ssh_key_path} rudy@${new_ip} "sudo bash /SDI2cloudcomputing/crmvm.sh"
 
     # Nieuwe gebruiker aanmaken en SSH-sleutel genereren
     new_user="user_${new_name}"
