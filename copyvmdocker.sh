@@ -43,6 +43,7 @@ for ((i=0; i<num_vms; i++)); do
     # Wijzig de hostname
     echo "Changing the hostname to ${new_name}"
     ssh -i ${ssh_key_path} rudy@${old_ip} "sudo hostnamectl set-hostname ${new_name}"
+    ssh -i ${ssh_key_path} rudy@${old_ip} "sudo hostnamectl set-hostname ${new_name} --pretty"
     
     # Update het /etc/hosts bestand met de nieuwe hostname
     echo "Updating /etc/hosts with the new hostname"
