@@ -70,7 +70,7 @@ for ((i=0; i<num_vms; i++)); do
     new_ssh_key_path="~/.ssh/sshkey_${new_name}"
 
     echo "Creating new user ${new_user} and generating SSH key..."
-    ssh -i ${ssh_key_path} crmadmin@${new_ip} << EOF
+    ssh -i ${ssh_key_path} rudy@${new_ip} << EOF
         sudo adduser --disabled-password --gecos "" ${new_user}
         sudo mkdir -p /home/${new_user}/.ssh
         sudo chmod 700 /home/${new_user}/.ssh
@@ -80,9 +80,9 @@ EOF
     ssh-keygen -t rsa -b 2048 -f ${new_ssh_key_path} -N "" -C "${new_name}"
     
     # Voeg de nieuwe sleutel toe aan de VM en geef de juiste permissies
-    ssh -i ${ssh_key_path} crmadmin@${new_ip} "echo '$(cat ${new_ssh_key_path}.pub)' | sudo tee /home/${new_user}/.ssh/authorized_keys"
-    ssh -i ${ssh_key_path} crmadmin@${new_ip} "sudo chmod 600 /home/${new_user}/.ssh/authorized_keys"
-    ssh -i ${ssh_key_path} crmadmin@${new_ip} "sudo chown -R ${new_user}:${new_user} /home/${new_user}/.ssh"
+    ssh -i ${ssh_key_path} rudy@${new_ip} "echo '$(cat ${new_ssh_key_path}.pub)' | sudo tee /home/${new_user}/.ssh/authorized_keys"
+    ssh -i ${ssh_key_path} rudy@${new_ip} "sudo chmod 600 /home/${new_user}/.ssh/authorized_keys"
+    ssh -i ${ssh_key_path} rudy@${new_ip} "sudo chown -R ${new_user}:${new_user} /home/${new_user}/.ssh"
     
     # Distribute the SSH key naar andere nodes
     echo "Distributing the new SSH key for user ${new_user} to other nodes in the cluster..."
