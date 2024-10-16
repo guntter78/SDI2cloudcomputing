@@ -35,5 +35,16 @@
       name: docker-ce
       state: present
 
-  - name: Download the official Ubuntu
+  - name: Add the current user to the docker group
+    user:
+      name: "{{ ansible_user_id }}"
+      groups: docker
+      append: yes
+
+  - name: Notify user to log out and log back in
+    debug:
+      msg: "Docker installation complete. Please log out and log back in for Docker group changes to take effect."
+
+  - name: Download the official Ubuntu Docker image
     shell: docker pull ubuntu
+    become: false
