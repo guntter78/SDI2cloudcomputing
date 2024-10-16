@@ -10,14 +10,12 @@ echo "Enter the last octet of the server IP (starting octet):"
 read last_octet
 echo "Enter the destination node where the new VMs will be created:"
 read dest_node
-echo "Voer het IP-adres van de monitoring server in:"
-read monitor_ip
 
 # Basisinstellingen
-source_vmid=149  # De template VM ID (crmvm149)
-source_node="vm1361" 
-old_ip="10.24.36.149" 
-ssh_key_path="~/.ssh/149_rsa_vm" 
+source_vmid=100  # De template VM ID (ubuntutemplate0)
+source_node="vm1360"
+old_ip="10.24.36.100"
+ssh_key_path="~/.ssh/id_rsa_ubuntu_vm"
 
 # Nodes waar de SSH-sleutel naar gekopieerd moet worden (gebruik IP-adressen)
 cluster_nodes=("vm1360" "vm1361" "vm1362") 
@@ -40,31 +38,32 @@ for ((i=0; i<num_vms; i++)); do
 
     # Update de netplan configuratie met het nieuwe IP-adres
     echo "Updating the IP address to ${new_ip} in /etc/netplan/50-cloud-init.yaml"
-    ssh -i ${ssh_key_path} crmadmin@${old_ip} "sudo sed -i 's/  - 10.24.36\.[0-9]\{1,3\}\/24/  - ${new_ip}\/24/' /etc/netplan/50-cloud-init.yaml"
+    ssh -i ${ssh_key_path} rudy@${old_ip} "sudo sed -i 's/  - 10.24.36\.[0-9]\{1,3\}\/24/  - ${new_ip}\/24/' /etc/netplan/50-cloud-init.yaml"
     
     # Wijzig de hostname
     echo "Changing the hostname to ${new_name}"
-    ssh -i ${ssh_key_path} crmadmin@${old_ip} "sudo hostnamectl set-hostname ${new_name}"
+    ssh -i ${ssh_key_path} rudy@${old_ip} "sudo hostnamectl set-hostname ${new_name}"
     
     # Update het /etc/hosts bestand met de nieuwe hostname
     echo "Updating /etc/hosts with the new hostname"
-    ssh -i ${ssh_key_path} crmadmin@${old_ip} "sudo sed -i 's/127.0.1.1.*/127.0.1.1 ${new_name}/' /etc/hosts"
+    ssh -i ${ssh_key_path} rudy@${old_ip} "sudo sed -i 's/127.0.1.1.*/127.0.1.1 ${new_name}/' /etc/hosts"
     
     # Voeg de hostname toe aan het /etc/hostname bestand
     echo "Adding the new hostname to /etc/hostname"
-    ssh -i ${ssh_key_path} crmadmin@${old_ip} "echo '${new_name}' | sudo tee /etc/hostname"
+    ssh -i ${ssh_key_path} rudy@${old_ip} "echo '${new_name}' | sudo tee /etc/hostname"
     
     # Reset de VM zodat de configuratie van kracht wordt
-    qm reset ${new_vmid}
+    ssh ${dest_node} "qm reset ${new_vmid}"
     
     echo "New hostname and IP address applied for VM ${new_vmid}, Wait for 120 seconds"
     sleep 120
 
+    
     # Git-repository klonen en het script uitvoeren
     echo "Cloning GitHub repository and executing the script"
-    ssh -i ${ssh_key_path} crmadmin@${new_ip} "sudo apt-get ansible"
-    ssh -i ${ssh_key_path} crmadmin@${new_ip} "git clone https://github.com/guntter78/SDI2cloudcomputing.git"
-    ssh -i ${ssh_key_path} crmadmin@${new_ip} "sudo ansible-playbook -i localhost, /SDI2cloudcomputing/ansible/dockercontainer.yml"
+    ssh -i ${ssh_key_path} rudy@${new_ip} "sudo apt-get ansible"
+    ssh -i ${ssh_key_path} rudy@${new_ip} "git clone https://github.com/guntter78/SDI2cloudcomputing.git"
+    ssh -i ${ssh_key_path} rudy@${new_ip} "sudo ansible-playbook -i localhost, /SDI2cloudcomputing/ansible/dockercontainer.yml"
 
     # Nieuwe gebruiker aanmaken en SSH-sleutel genereren
     new_user="user_${new_name}"
