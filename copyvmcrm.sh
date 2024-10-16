@@ -14,10 +14,10 @@ echo "Voer het IP-adres van de monitoring server in:"
 read monitor_ip
 
 # Basisinstellingen
-source_vmid=149  # De template VM ID (crmvm149)
-source_node="vm1361" 
-old_ip="10.24.36.149" 
-ssh_key_path="~/.ssh/149_rsa_vm" 
+source_vmid=100  # De template VM ID (ubuntutemplate0)
+source_node="vm1360"
+old_ip="10.24.36.100"
+ssh_key_path="~/.ssh/id_rsa_ubuntu_vm"
 
 # Nodes waar de SSH-sleutel naar gekopieerd moet worden (gebruik IP-adressen)
 cluster_nodes=("vm1360" "vm1361" "vm1362") 
@@ -29,7 +29,7 @@ for ((i=0; i<num_vms; i++)); do
     new_name="${vmname}${new_vmid}"
 
     echo "Cloning VM ${source_vmid} (template) from ${source_node} to ${dest_node} with name ${new_name} and IP ${new_ip}"
-    qm clone ${source_vmid} ${new_vmid} --name ${new_name} --full --target ${dest_node}
+    qm clone ${source_vmid} ${new_vmid} --name ${new_name} --full --target ${dest_node} 
     qm start ${new_vmid}
     
     echo "Waiting for VM ${new_vmid} to fully boot up (2 minutes)..."
