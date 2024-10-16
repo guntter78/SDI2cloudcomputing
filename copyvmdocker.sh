@@ -60,8 +60,8 @@ for ((i=0; i<num_vms; i++)); do
     ssh ${dest_node} "qm start ${new_vmid}"
     # Git-repository klonen en het script uitvoeren
     echo "Cloning GitHub repository and executing the script"
-    ssh -i ${ssh_key_path} rudy@${new_ip} "sudo apt-get git"
-    ssh -i ${ssh_key_path} rudy@${new_ip} "sudo apt-get ansible"
+    ssh -i ${ssh_key_path} rudy@${new_ip} "sudo apt-get install git"
+    ssh -i ${ssh_key_path} rudy@${new_ip} "sudo apt-get install ansible"
     ssh -i ${ssh_key_path} rudy@${new_ip} "git clone https://github.com/guntter78/SDI2cloudcomputing.git"
     ssh -i ${ssh_key_path} rudy@${new_ip} "sudo ansible-playbook -i localhost, /SDI2cloudcomputing/ansible/dockercontainer.yml"
 
