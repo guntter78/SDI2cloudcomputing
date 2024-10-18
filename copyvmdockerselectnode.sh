@@ -56,7 +56,7 @@ for ((i=0; i<num_vms; i++)); do
     # Reset de VM zodat de configuratie van kracht wordt
     ssh ${dest_node} "qm reset ${new_vmid}"
     
-    echo "New hostname and IP address applied for VM ${new_vmid}, Wait for 120 seconds"
+    echo "New hostname and IP address applied for VM ${new_vmid}, Wait for 180 seconds"
     sleep 180
     ssh ${dest_node} "qm start ${new_vmid}"
     # Git-repository klonen en het script uitvoeren
@@ -65,9 +65,14 @@ for ((i=0; i<num_vms; i++)); do
     ssh -i ${ssh_key_path} rudy@${new_ip} "sudo apt-get install ansible"
     ssh -i ${ssh_key_path} rudy@${new_ip} "git clone https://github.com/guntter78/SDI2cloudcomputing.git"
     ssh -i ${ssh_key_path} rudy@${new_ip} "cd SDI2cloudcomputing/ansible && sudo ansible-playbook -i localhost, dockerplaybook.yml"
-    ssh -i ${ssh_key_path} rudy@${new_ip} "cd SDI2cloudcomputing && bash dockerimage.sh"
-    ssh -i ${ssh_key_path} rudy@${new_ip} "cd SDI2cloudcomputing && bash dockercompose.sh"
 
+    ssh ${dest_node} "qm reset ${new_vmid}"
+    echo "New dockergroup and dockeruser applied for VM ${new_vmid}, Wait for 180 seconds"
+    sleep 180
+
+    ssh -i ${ssh_key_path} rudy@${new_ip} "cd SDI2cloudcomputing && sudo bash dockerimage.sh"
+    ssh -i ${ssh_key_path} rudy@${new_ip} "cd SDI2cloudcomputing && sudo bash dockercompose.sh"
+    ssh -i ${ssh_key_path} rudy@${new_ip} "cd SDI2cloudcomputing && sudo bash createswarm.sh"
 
 
     sleep 10
