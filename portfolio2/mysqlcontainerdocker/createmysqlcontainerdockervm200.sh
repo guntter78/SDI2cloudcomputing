@@ -81,3 +81,5 @@ sudo docker exec mysql_server1 netstat -tuln | grep 3306
 echo "Testing if MySQL is listening on port 3306 in mysql_server2..."
 sudo docker exec mysql_server2 netstat -tuln | grep 3306
 
+echo "Add iptables for routing"
+sudo bash ../iptables/iptablesdockervm200.sh
