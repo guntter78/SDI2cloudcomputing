@@ -73,7 +73,7 @@ for ((i=0; i<num_vms; i++)); do
     ssh -i ${ssh_key_path} rudy@${new_ip} "cd SDI2cloudcomputing && sudo bash dockerimage.sh"
     ssh -i ${ssh_key_path} rudy@${new_ip} "cd SDI2cloudcomputing && sudo bash dockercompose.sh"
     ssh -i ${ssh_key_path} rudy@${new_ip} "cd SDI2cloudcomputing && sudo bash createswarm.sh"
-
+    ssh -i ${ssh_key_path} rudy@${new_ip} "cd SDI2cloudcomputing && sudo bash basicnetworking.sh"
 
     sleep 10
 done

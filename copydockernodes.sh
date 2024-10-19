@@ -73,9 +73,14 @@ for ((node_index=0; node_index<${#cluster_nodes[@]}; node_index++)); do
       ssh -i ${ssh_key_path} rudy@${new_ip} "sudo apt-get install ansible"
       ssh -i ${ssh_key_path} rudy@${new_ip} "git clone https://github.com/guntter78/SDI2cloudcomputing.git"
       ssh -i ${ssh_key_path} rudy@${new_ip} "cd SDI2cloudcomputing/ansible && sudo ansible-playbook -i localhost, dockerplaybook.yml"
-      ssh -i ${ssh_key_path} rudy@${new_ip} "cd SDI2cloudcomputing && bash dockerimage.sh"
-      ssh -i ${ssh_key_path} rudy@${new_ip} "cd SDI2cloudcomputing && bash dockercompose.sh"
+      ssh ${dest_node} "qm reset ${new_vmid}"
+      echo "New dockergroup and dockeruser applied for VM ${new_vmid}, Wait for 180 seconds"
+      sleep 180
 
+      ssh -i ${ssh_key_path} rudy@${new_ip} "cd SDI2cloudcomputing && sudo bash dockerimage.sh"
+      ssh -i ${ssh_key_path} rudy@${new_ip} "cd SDI2cloudcomputing && sudo bash dockercompose.sh"
+      ssh -i ${ssh_key_path} rudy@${new_ip} "cd SDI2cloudcomputing && sudo bash createswarm.sh"
+      ssh -i ${ssh_key_path} rudy@${new_ip} "cd SDI2cloudcomputing && sudo bash basicnetworking.sh"
       sleep 10
   done
 done
