@@ -70,10 +70,10 @@ for ((i=0; i<num_vms; i++)); do
     echo "New dockergroup and dockeruser applied for VM ${new_vmid}, Wait for 180 seconds"
     sleep 180
 
-    ssh -i ${ssh_key_path} rudy@${new_ip} "cd SDI2cloudcomputing && sudo bash dockerimage.sh"
-    ssh -i ${ssh_key_path} rudy@${new_ip} "cd SDI2cloudcomputing && sudo bash dockercompose.sh"
-    ssh -i ${ssh_key_path} rudy@${new_ip} "cd SDI2cloudcomputing && sudo bash createswarm.sh"
-    ssh -i ${ssh_key_path} rudy@${new_ip} "cd SDI2cloudcomputing && sudo bash basicnetworking.sh"
+    ssh -i ${ssh_key_path} rudy@${new_ip} "cd SDI2cloudcomputing/portfolio2 && sudo bash dockerimage.sh"
+    ssh -i ${ssh_key_path} rudy@${new_ip} "cd SDI2cloudcomputing/portfolio2 && sudo bash dockercompose.sh"
+    ssh -i ${ssh_key_path} rudy@${new_ip} "cd SDI2cloudcomputing/portfolio2 && sudo bash createswarm.sh"
+    ssh -i ${ssh_key_path} rudy@${new_ip} "cd SDI2cloudcomputing/portfolio2 && sudo bash basicnetworking.sh"
 
     sleep 10
 done
