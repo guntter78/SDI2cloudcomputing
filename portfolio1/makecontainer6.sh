@@ -102,17 +102,17 @@ for ((i=0; i<num_containers; i++)); do
 
     # Voer het Ansible-playbook uit binnen de container met localhost als inventaris
     echo "Voer het Ansible playbook uit op container $id"
-    pct exec $id -- ansible-playbook -i localhost, /SDI2cloudcomputing/ansible/wordpress_playbook.yml \
+    pct exec $id -- ansible-playbook -i localhost, /SDI2cloudcomputing/portfolio1/ansible/wordpress_playbook.yml \
       && echo "WordPress installatie playbook uitgevoerd op container $id"
 
     # Voer het Zabbix-agent playbook uit, geef het monitor IP door als variabele
     echo "Voer het Zabbix-agent playbook uit op container $id"
-    pct exec $id -- ansible-playbook -i localhost, /SDI2cloudcomputing/ansible/zabbix_agent_playbook.yml --extra-vars "zabbix_server_ip=$monitor_ip host_metadata=wordpresscontainer" \
+    pct exec $id -- ansible-playbook -i localhost, /SDI2cloudcomputing/portfolio1/ansible/zabbix_agent_playbook.yml --extra-vars "zabbix_server_ip=$monitor_ip host_metadata=wordpresscontainer" \
       && echo "Zabbix-agent geinstalleerd op container $id"
 
     # Voer het firewall playbook uit op container $id
     echo "Voer het firewall playbook uit op container $id"
-    pct exec $id -- ansible-playbook -i localhost, /SDI2cloudcomputing/ansible/container_firewall_playbook.yml \
+    pct exec $id -- ansible-playbook -i localhost, /SDI2cloudcomputing/portfolio1/ansible/container_firewall_playbook.yml \
       && echo "Firewall op container $id geïnstalleerd."
 
     # Unieke gebruikers met SSH-sleutels aanmaken in elke container
