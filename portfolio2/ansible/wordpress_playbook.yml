@@ -1,0 +1,168 @@
+---
+- name: Install WordPress on containers
+  hosts: localhost
+  become: yes
+  connection: local
+  vars:
+    wordpress_db_name: wordpress
+    wordpress_db_user: wp_user
+    wordpress_db_password: strongpassword
+    wordpress_db_host: localhost
+    wordpress_site_url: "http://{{ ansible_default_ipv4.address }}"
+    wordpress_site_title: "My WordPress Site"
+    wordpress_admin_user: admin
+    wordpress_admin_password: adminpassword
+    wordpress_admin_email: admin@example.com
+    ansible_python_interpreter: /usr/bin/python3
+    mysql_root_password: your_root_password
+
+  tasks:
+    - name: Update and upgrade the system
+      apt:
+        update_cache: yes
+        upgrade: dist
+      ignore_errors: yes
+
+    - name: Install Apache2
+      apt:
+        name: apache2
+        state: present
+      ignore_errors: yes
+
+    - name: Install MySQL server
+      apt:
+        name: mysql-server
+        state: present
+      ignore_errors: yes
+
+    - name: Install PHP and required modules
+      apt:
+        name:
+          - php
+          - libapache2-mod-php
+          - php-mysql
+          - php-curl
+          - php-gd
+          - php-imagick
+          - php-mbstring
+          - php-xml
+          - php-xmlrpc
+        state: present
+      ignore_errors: yes
+
+    - name: Create WordPress MySQL database and user
+      shell: |
+        mysql -e "CREATE DATABASE IF NOT EXISTS {{ wordpress_db_name }};"
+        mysql -e "CREATE USER IF NOT EXISTS '{{ wordpress_db_user }}'@'localhost' IDENTIFIED BY '{{ wordpress_db_password }}';"
+        mysql -e "GRANT ALL PRIVILEGES ON {{ wordpress_db_name }}.* TO '{{ wordpress_db_user }}'@'localhost';"
+        mysql -e "FLUSH PRIVILEGES;"
+      ignore_errors: no
+
+    - name: Download WordPress
+      get_url:
+        url: https://wordpress.org/latest.tar.gz
+        dest: /var/www/html/latest.tar.gz
+      ignore_errors: yes
+
+    - name: Extract WordPress
+      unarchive:
+        src: /var/www/html/latest.tar.gz
+        dest: /var/www/html/
+        remote_src: yes
+
+    - name: Move WordPress files and clean up
+      shell: |
+        mv /var/www/html/wordpress/* /var/www/html/
+        rm -rf /var/www/html/wordpress latest.tar.gz
+      ignore_errors: no
+
+    - name: Copy wp-config-sample.php to wp-config.php
+      command: cp /var/www/html/wp-config-sample.php /var/www/html/wp-config.php
+      ignore_errors: no
+
+    - name: Configure WordPress
+      lineinfile:
+        path: /var/www/html/wp-config.php
+        regexp: "{{ item.search }}"
+        line: "{{ item.replace }}"
+      loop:
+        - { search: 'database_name_here', replace: "define('DB_NAME', '{{ wordpress_db_name }}');" }
+        - { search: 'username_here', replace: "define('DB_USER', '{{ wordpress_db_user }}');" }
+        - { search: 'password_here', replace: "define('DB_PASSWORD', '{{ wordpress_db_password }}');" }
+      notify: restart apache
+
+    - name: Set proper permissions for WordPress
+      file:
+        path: /var/www/html
+        owner: www-data
+        group: www-data
+        mode: '0755'
+        recurse: yes
+
+    - name: Enable Apache rewrite module
+      command: a2enmod rewrite
+
+    - name: Disable PrivateTmp in Apache service
+      replace:
+        path: /lib/systemd/system/apache2.service
+        regexp: 'PrivateTmp=true'
+        replace: 'PrivateTmp=false'
+
+    - name: Disable ProtectSystem in Apache service
+      replace:
+        path: /lib/systemd/system/apache2.service
+        regexp: 'ProtectSystem=full'
+        replace: '#ProtectSystem=full'
+
+    - name: Disable ProtectHome in Apache service
+      replace:
+        path: /lib/systemd/system/apache2.service
+        regexp: 'ProtectHome=true'
+        replace: '#ProtectHome=true'
+
+    - name: Remove [Install] section from Apache service
+      lineinfile:
+        path: /lib/systemd/system/apache2.service
+        regexp: '\[Install\]'
+        state: absent
+
+    - name: Add custom settings to [Service] section in Apache service
+      blockinfile:
+        path: /lib/systemd/system/apache2.service
+        marker: "# {mark} ANSIBLE MANAGED BLOCK"
+        block: |
+          PrivateTmp=false
+          ProtectSystem=false
+          ProtectHome=false
+        insertafter: '\[Service\]'
+        
+    - name: Enable Apache rewrite module
+      command: a2enmod rewrite
+      notify: restart apache
+
+    - name: Update Apache dir.conf for index.php
+      lineinfile:
+        path: /etc/apache2/mods-enabled/dir.conf
+        regexp: 'DirectoryIndex'
+        line: 'DirectoryIndex index.php index.html'
+      notify: restart apache
+
+    - name: Reload systemd
+      command: systemctl daemon-reload
+
+    - name: Restart Apache
+      service:
+        name: apache2
+        state: restarted
+
+    - name: Check if WordPress is accessible
+      uri:
+        url: "{{ wordpress_site_url }}"
+        status_code: 200
+      ignore_errors: yes
+
+  handlers:
+    - name: restart apache
+      service:
+        name: apache2
+        state: restarted

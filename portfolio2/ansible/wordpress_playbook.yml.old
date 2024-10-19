@@ -1,0 +1,142 @@
+---
+- name: Install WordPress on containers
+  hosts: localhost
+  become: yes
+  connection: local
+  vars:
+    wordpress_db_name: wordpress
+    wordpress_db_user: wp_user
+    wordpress_db_password: strongpassword
+    wordpress_db_host: localhost
+    wordpress_site_url: "http://{{ ansible_default_ipv4.address }}"
+    wordpress_site_title: "My WordPress Site"
+    wordpress_admin_user: admin
+    wordpress_admin_password: adminpassword
+    wordpress_admin_email: admin@example.com
+    ansible_python_interpreter: /usr/bin/python3
+    mysql_root_password: your_root_password
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      ignore_errors: yes
+
+    - name: Install required packages (Apache, MySQL, PHP, and Curl)
+      apt:
+        name:
+          - apache2
+          - mysql-server
+          - php
+          - php-mysql
+          - libapache2-mod-php
+          - php-cli
+          - php-curl
+          - php-gd
+          - php-mbstring
+          - php-xml
+          - php-xmlrpc
+          - curl
+          - wget
+        state: present
+      ignore_errors: yes
+
+    - name: Start and enable MySQL
+      service:
+        name: mysql
+        state: started
+        enabled: true
+      ignore_errors: yes
+
+    - name: Create WordPress MySQL database using shell
+      shell: |
+        mysql -u root -p"{{ mysql_root_password }}" -e "CREATE DATABASE IF NOT EXISTS {{ wordpress_db_name }};"
+      ignore_errors: no
+
+    - name: Create WordPress MySQL user and grant privileges using shell
+      shell: |
+        mysql -u root -p"{{ mysql_root_password }}" -e "CREATE USER IF NOT EXISTS '{{ wordpress_db_user }}'@'localhost' IDENTIFIED BY '{{ wordpress_db_password }}';"
+        mysql -u root -p"{{ mysql_root_password }}" -e "GRANT ALL PRIVILEGES ON {{ wordpress_db_name }}.* TO '{{ wordpress_db_user }}'@'localhost';"
+        mysql -u root -p"{{ mysql_root_password }}" -e "FLUSH PRIVILEGES;"
+      ignore_errors: no
+
+    - name: Download WordPress
+      get_url:
+        url: https://wordpress.org/latest.tar.gz
+        dest: /tmp/latest.tar.gz
+      ignore_errors: yes
+
+    - name: Extract WordPress locally in container
+      unarchive:
+        src: /tmp/latest.tar.gz
+        dest: /var/www/html/
+        creates: /var/www/html/wp-config-sample.php
+      ignore_errors: yes
+
+    - name: Copy wp-config-sample.php to wp-config.php
+      command: cp /var/www/html/wp-config-sample.php /var/www/html/wp-config.php
+      ignore_errors: no
+
+    - name: Configure wp-config.php with database settings
+      lineinfile:
+        path: /var/www/html/wp-config.php
+        regexp: 'database_name_here'
+        line: "define('DB_NAME', '{{ wordpress_db_name }}');"
+      notify: restart apache
+
+    - name: Set DB_USER in wp-config.php
+      lineinfile:
+        path: /var/www/html/wp-config.php
+        regexp: 'username_here'
+        line: "define('DB_USER', '{{ wordpress_db_user }}');"
+      notify: restart apache
+
+    - name: Set DB_PASSWORD in wp-config.php
+      lineinfile:
+        path: /var/www/html/wp-config.php
+        regexp: 'password_here'
+        line: "define('DB_PASSWORD', '{{ wordpress_db_password }}');"
+      notify: restart apache
+
+    - name: Set proper permissions for WordPress
+      file:
+        path: /var/www/html
+        owner: www-data
+        group: www-data
+        mode: '0755'
+        recurse: yes
+      ignore_errors: yes
+
+    - name: Enable Apache rewrite module
+      command: a2enmod rewrite
+      ignore_errors: yes
+
+    - name: Update Apache dir.conf for index.php
+      lineinfile:
+        path: /etc/apache2/mods-enabled/dir.conf
+        regexp: 'DirectoryIndex'
+        line: 'DirectoryIndex index.php index.html'
+      notify: restart apache
+
+    - name: Reload systemd
+      command: systemctl daemon-reload
+      ignore_errors: yes
+
+    - name: Restart Apache
+      service:
+        name: apache2
+        state: restarted
+      ignore_errors: yes
+
+    - name: Check if WordPress is accessible
+      uri:
+        url: "http://localhost"
+        status_code: 200
+      ignore_errors: yes
+
+  handlers:
+    - name: restart apache
+      service:
+        name: apache2
+        state: restarted

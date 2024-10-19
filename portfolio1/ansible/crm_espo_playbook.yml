@@ -1,0 +1,145 @@
+---
+- name: Install and configure EspoCRM on VMs
+  hosts: localhost
+  become: yes
+  connection: local
+  vars:
+    espocrm_db_name: espocrm
+    espocrm_db_user: crm_user
+    espocrm_db_password: strongpassword
+    espocrm_db_host: localhost
+    espocrm_site_url: "http://{{ ansible_default_ipv4.address }}"
+    espocrm_admin_user: admin
+    espocrm_admin_password: adminpassword
+    espocrm_admin_email: admin@example.com
+    ansible_python_interpreter: /usr/bin/python3
+    mysql_root_password: your_root_password
+
+  tasks:
+    - name: Update and upgrade the system
+      apt:
+        update_cache: yes
+        upgrade: dist
+      ignore_errors: yes
+
+    - name: Install Apache2
+      apt:
+        name: apache2
+        state: present
+      ignore_errors: yes
+
+    - name: Install MySQL server
+      apt:
+        name: mysql-server
+        state: present
+      ignore_errors: yes
+
+    - name: Install PHP and required modules
+      apt:
+        name:
+          - php
+          - libapache2-mod-php
+          - php-mysql
+          - php-curl
+          - php-gd
+          - php-imagick
+          - php-mbstring
+          - php-xml
+          - php-xmlrpc
+          - php-zip  
+        state: present
+      ignore_errors: yes
+
+    - name: Install unzip package
+      apt:
+        name: unzip
+        state: present
+      ignore_errors: yes
+
+    - name: Create EspoCRM MySQL database and user
+      shell: |
+        mysql -e "CREATE DATABASE IF NOT EXISTS {{ espocrm_db_name }};"
+        mysql -e "CREATE USER IF NOT EXISTS '{{ espocrm_db_user }}'@'localhost' IDENTIFIED BY '{{ espocrm_db_password }}';"
+        mysql -e "GRANT ALL PRIVILEGES ON {{ espocrm_db_name }}.* TO '{{ espocrm_db_user }}'@'localhost';"
+        mysql -e "FLUSH PRIVILEGES;"
+      ignore_errors: no
+
+    - name: Download EspoCRM
+      get_url:
+        url: https://www.espocrm.com/downloads/EspoCRM-8.4.1.zip
+        dest: /var/www/html/EspoCRM-8.4.1.zip
+      ignore_errors: yes
+
+    - name: Extract EspoCRM
+      unarchive:
+        src: /var/www/html/EspoCRM-8.4.1.zip
+        dest: /var/www/html/
+        remote_src: yes
+
+    - name: Move all files from EspoCRM-8.4.1 to /var/www/html
+      shell: |
+        mv /var/www/html/EspoCRM-8.4.1/* /var/www/html/
+        rm -rf /var/www/html/EspoCRM-8.4.1
+      ignore_errors: no
+
+    - name: Set proper permissions for EspoCRM files and directories
+      file:
+        path: /var/www/html
+        owner: www-data
+        group: www-data
+        mode: '0755'
+        recurse: yes
+
+    - name: Set writable permissions for specific EspoCRM directories
+      file:
+        path: "/var/www/html/{{ item }}"
+        owner: www-data
+        group: www-data
+        mode: '0775'
+        recurse: yes
+      loop:
+        - data
+        - custom
+        - client
+
+    - name: Enable Apache rewrite module
+      command: a2enmod rewrite
+
+    - name: Configure Apache for EspoCRM
+      blockinfile:
+        path: /etc/apache2/sites-available/000-default.conf
+        marker: "# {mark} ANSIBLE MANAGED BLOCK"
+        block: |
+          DocumentRoot /var/www/html/public
+
+          <Directory /var/www/html/public/>
+              AllowOverride All
+              Require all granted
+          </Directory>
+
+          Alias /client /var/www/html/client
+
+          <Directory /var/www/html/client/>
+              AllowOverride All
+              Require all granted
+          </Directory>
+
+    - name: Reload systemd
+      command: systemctl daemon-reload
+
+    - name: Restart Apache
+      service:
+        name: apache2
+        state: restarted
+
+    - name: Check if EspoCRM is accessible
+      uri:
+        url: "{{ espocrm_site_url }}"
+        status_code: 200
+      ignore_errors: yes
+
+  handlers:
+    - name: restart apache
+      service:
+        name: apache2
+        state: restarted

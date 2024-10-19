@@ -1,0 +1,27 @@
+---
+- name: Configure Firewall for Container/Server
+  hosts: localhost
+  become: yes
+  connection: local
+
+  tasks:
+    - name: Allow HTTP traffic
+      command: ufw allow from any to any port 80 proto tcp
+
+    - name: Allow HTTPS traffic
+      command: ufw allow from any to any port 443 proto tcp
+
+    - name: Allow Zabbix agent traffic on port 10050
+      command: ufw allow from any to any port 10050
+
+    - name: Allow Zabbix server traffic on port 10051
+      command: ufw allow from any to any port 10051
+
+    - name: Allow SSH access
+      command: ufw allow from any to any port 22
+
+    - name: Deny all other incoming traffic
+      command: ufw default deny incoming
+
+    - name: Enable UFW
+      command: ufw enable
