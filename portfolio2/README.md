@@ -52,3 +52,6 @@ In de map **nginx** wordt een configuratiebestand aangemaakt waarin de load bala
 Als laatste stap moet er een **docker-compose.yml** bestand worden aangemaakt, buiten de mappen app1, app2 en nginx. In dit bestand worden services gedefinieerd zoals **app1** met daarin build instructies en poorten.
 
 Nadat alle stappen zijn voltooid, kan het commando `sudo docker-compose up --build -d` worden uitgevoerd om de containers te starten. Zorg ervoor dat je dit commando uitvoert met `--build -d`, anders kunnen er mogelijk bestanden ontbreken of foutmeldingen optreden.
+
+Filmpje van werkende load balancer:
+https://www.youtube.com/watch?v=FU_rJ9pQA1U
