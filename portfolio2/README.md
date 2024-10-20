@@ -30,7 +30,7 @@ In deze opdracht worden twee MySQL- of webservers opgezet met Redis, waarbij elk
 
 Om de opdracht volledig af te ronden, moet de gebruiker het bash-script in de map **iproute** handmatig uitvoeren in de Proxmox-omgeving om de subnetten correct te configureren.
 
-** Korte inlichting waarom meerdere subnetten kunnen aanmaken in Docker handig is:**
+**Korte inlichting waarom meerdere subnetten kunnen aanmaken in Docker handig is:**
 Er meerdere reden waarom verschillende subnetten maken handig zou zijn.
 Allereerst biedt het de mogelijkheid om meer IP-adressen aan containers toe te wijzen, omdat je per container kunt specificeren tot welk subnet ze behoren. Dit zorgt voor meer flexibiliteit in de netwerkconfiguratie. Ten tweede kunnen containers op verschillende subnetten niet direct met elkaar communiceren, wat zorgt voor isolatie tussen containers. Dit verhoogt de beveiliging, omdat gevoelige containers afgeschermd kunnen worden van de rest van het netwerk.
 
