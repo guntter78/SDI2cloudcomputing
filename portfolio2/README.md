@@ -19,6 +19,8 @@ Installeer Docker Compose op alle Docker-instanties binnen het Proxmox cluster. 
 ### Lesson 9
 Creëer geautomatiseerd Docker Swarms op alle Docker-omgevingen in het Proxmox cluster. Dit wordt gedaan met het script **createswarm.sh**, dat ook automatisch wordt aangemaakt bij het uitvoeren van de scripts uit Lesson 4.
 
+De opname van deze opdracht staat op youtube:
+https://youtu.be/IKRjnWlnRDo
 
 ### Lesson 10
 Voer basis Docker-netwerkcommando's uit met het script **basicnetworking.sh**. Dit script voert elk commando één voor één uit.
