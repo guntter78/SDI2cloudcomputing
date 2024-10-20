@@ -1,0 +1,19 @@
+version: '3'
+services:
+  app1:
+    build: ./app1
+    ports:
+      - "8001:5000"  # Exporteer poort 5000 voor Flask app1 naar poort 8001
+
+  app2:
+    build: ./app2
+    ports:
+      - "8002:5000"  # Exporteer poort 5000 voor Flask app2 naar poort 8002
+
+  nginx:
+    build: ./nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - app1
+      - app2
