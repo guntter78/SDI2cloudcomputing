@@ -32,8 +32,21 @@ Om de opdracht volledig af te ronden, moet de gebruiker het bash-script in de ma
 Er meerdere reden waarom verschillende subnetten maken handig zou zijn.
 Allereerst biedt het de mogelijkheid om meer IP-adressen aan containers toe te wijzen, omdat je per container kunt specificeren tot welk subnet ze behoren. Dit zorgt voor meer flexibiliteit in de netwerkconfiguratie. Ten tweede kunnen containers op verschillende subnetten niet direct met elkaar communiceren, wat zorgt voor isolatie tussen containers. Dit verhoogt de beveiliging, omdat gevoelige containers afgeschermd kunnen worden van de rest van het netwerk.
 
-### Opdracht 3
-1.
+## Opdracht 3
+### Deel 1.
+De bash-script bevindt zich in het mapje **composeopdracht3.1** en de screenshots in **screenshotopdracht.31**.
 
 **Wat doet een Reverse proxy:**
 Een reverse proxy is een tussenstation dat inkomende verzoeken van clients ontvangt en doorstuurt naar servers aan de achterkant. Dit heeft een paar voordelen, zoals load balancing, wat betekent dat het verkeer wordt verdeeld over meerdere servers, en beveiliging, omdat de proxy de echte serverdetails afschermt. In mijn geval zorgt Traefik ervoor dat het verkeer naar de juiste 'whoami' containers gaat en dat de verzoeken verdeeld worden over meerdere containers (load balancing).
+
+### Deel 2
+Voor deze opdracht heb ik gekozen voor een tutorial van Mazen Ramadan op de website:  
+https://dev.to/mazenr/how-to-implement-a-load-balancer-using-nginx-docker-4g73
+
+De stappen die ik heb gevolgd, beginnen bij "Implement Nginx Load Balancer". Hierin worden drie mappen aangemaakt: **app1**, **app2**, en **nginx**. Vervolgens moet in de app-mappen een **app.py** bestand worden aangemaakt met de gegeven informatie uit de tutorial. Ook wordt een Dockerfile aangemaakt om een Docker-container met Flask te deployen. Deze stap wordt herhaald voor **app2**.
+
+In de map **nginx** wordt een configuratiebestand aangemaakt waarin de load balancer wordt gedefinieerd. Deze configuratie maakt gebruik van het "round robin"-mechanisme. Ook wordt hier een Dockerfile aangemaakt.
+
+Als laatste stap moet er een **docker-compose.yml** bestand worden aangemaakt, buiten de mappen app1, app2 en nginx. In dit bestand worden services gedefinieerd zoals **app1** met daarin build instructies en poorten.
+
+Nadat alle stappen zijn voltooid, kan het commando `sudo docker-compose up --build -d` worden uitgevoerd om de containers te starten. Zorg ervoor dat je dit commando uitvoert met `--build -d`, anders kunnen er mogelijk bestanden ontbreken of foutmeldingen optreden.
