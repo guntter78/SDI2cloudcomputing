@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "apache-server.fullname" . }}-config
+data:
+  index.html: |
+    <html>
+      <head><title>Welkom bij {{ .Values.serverName }}</title></head>
+      <body><h1>Dit is de homepage voor dit is een test {{ .Values.serverName }}</h1></body>
+    </html>

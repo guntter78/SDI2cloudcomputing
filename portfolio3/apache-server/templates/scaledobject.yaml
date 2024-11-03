@@ -1,0 +1,17 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: apache-server-scaledobject
+  namespace: apache-namespace
+spec:
+  scaleTargetRef:
+    name: my-apache-apache-server
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-server.default.svc.cluster.local:9090
+        metricName: http_requests_total
+        query: sum(rate(http_requests_total[2m]))
+        threshold: "100"
